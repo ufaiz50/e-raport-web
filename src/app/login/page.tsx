@@ -11,7 +11,6 @@ import { auth } from "@/lib/auth";
 const schema = z.object({
   username: z.string().min(1, "Username wajib"),
   password: z.string().min(1, "Password wajib"),
-  school_id: z.coerce.number().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -52,10 +51,6 @@ export default function LoginPage() {
           {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm">School ID (optional untuk login tenant)</label>
-          <input type="number" className="w-full rounded border px-3 py-2" {...register("school_id")} />
-        </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
