@@ -34,7 +34,7 @@ export default function LoginPage() {
       const res = await api.post<{ token: string }>("/login", values);
       auth.setToken(res.data.token);
       showToast("Login berhasil, mengarahkan ke dashboard...", "success");
-      router.push("/students");
+      router.push("/dashboard");
     } catch {
       showToast("Login gagal. Cek kredensial/API key.", "error");
     }

@@ -10,7 +10,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (auth.isLoggedIn()) {
-      router.replace("/students");
+      router.replace("/dashboard");
     }
   }, [router]);
 
