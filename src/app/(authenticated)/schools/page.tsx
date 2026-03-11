@@ -40,6 +40,7 @@ export default function SchoolsPage() {
   const [offset, setOffset] = useState(0);
   const [form, setForm] = useState<SchoolPayload>(emptyForm);
   const [editing, setEditing] = useState<School | null>(null);
+  const [openModal, setOpenModal] = useState(false);
 
   useEffect(() => {
     const role = auth.getRole();
@@ -61,6 +62,7 @@ export default function SchoolsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schools"] });
       setForm(emptyForm);
+      setOpenModal(false);
     },
   });
 
@@ -70,6 +72,7 @@ export default function SchoolsPage() {
       queryClient.invalidateQueries({ queryKey: ["schools"] });
       setEditing(null);
       setForm(emptyForm);
+      setOpenModal(false);
     },
   });
 
@@ -105,25 +108,21 @@ export default function SchoolsPage() {
       headmaster_sign: row.headmaster_sign ?? "",
       school_stamp: row.school_stamp ?? "",
     });
+    setOpenModal(true);
+  };
+
+  const openCreateModal = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setOpenModal(true);
   };
 
   return (
     <>
-      <h1 className="mb-4 text-2xl font-semibold">Schools (Super Admin)</h1>
-
-      <form onSubmit={onSubmit} className="mb-6 grid grid-cols-1 gap-2 lg:grid-cols-4">
-        <input className="rounded border px-3 py-2" placeholder="Name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
-        <input className="rounded border px-3 py-2" placeholder="Code" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
-        <input className="rounded border px-3 py-2" placeholder="Address" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
-        <input className="rounded border px-3 py-2" placeholder="NPSN" value={form.npsn ?? ""} onChange={(e) => setForm((p) => ({ ...p, npsn: e.target.value }))} />
-        <input className="rounded border px-3 py-2" placeholder="Principal Name" value={form.principal_name ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_name: e.target.value }))} />
-        <input className="rounded border px-3 py-2" placeholder="Principal NIP" value={form.principal_nip ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_nip: e.target.value }))} />
-        <input className="rounded border px-3 py-2" placeholder="Headmaster Sign URL" value={form.headmaster_sign ?? ""} onChange={(e) => setForm((p) => ({ ...p, headmaster_sign: e.target.value }))} />
-        <input className="rounded border px-3 py-2" placeholder="School Stamp URL" value={form.school_stamp ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_stamp: e.target.value }))} />
-        <button className="rounded bg-black px-3 py-2 text-white lg:col-span-4" type="submit">
-          {editing ? "Update School" : "Add School"}
-        </button>
-      </form>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Schools (Super Admin)</h1>
+        <button onClick={openCreateModal} className="rounded bg-black px-3 py-2 text-sm text-white">Add School</button>
+      </div>
 
       {isLoading && <p>Loading...</p>}
       {isError && <p className="text-red-600">Gagal ambil data schools.</p>}
@@ -171,6 +170,36 @@ export default function SchoolsPage() {
             <button disabled={!canNext} onClick={() => setOffset((p) => p + LIMIT)} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Next</button>
           </div>
         </>
+      )}
+
+      {openModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{editing ? "Update School" : "Create School"}</h2>
+              <button
+                onClick={() => setOpenModal(false)}
+                className="rounded border px-2 py-1 text-xs"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={onSubmit} className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+              <input className="rounded border px-3 py-2" placeholder="Name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+              <input className="rounded border px-3 py-2" placeholder="Code" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
+              <input className="rounded border px-3 py-2" placeholder="Address" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
+              <input className="rounded border px-3 py-2" placeholder="NPSN" value={form.npsn ?? ""} onChange={(e) => setForm((p) => ({ ...p, npsn: e.target.value }))} />
+              <input className="rounded border px-3 py-2" placeholder="Principal Name" value={form.principal_name ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_name: e.target.value }))} />
+              <input className="rounded border px-3 py-2" placeholder="Principal NIP" value={form.principal_nip ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_nip: e.target.value }))} />
+              <input className="rounded border px-3 py-2" placeholder="Headmaster Sign URL" value={form.headmaster_sign ?? ""} onChange={(e) => setForm((p) => ({ ...p, headmaster_sign: e.target.value }))} />
+              <input className="rounded border px-3 py-2" placeholder="School Stamp URL" value={form.school_stamp ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_stamp: e.target.value }))} />
+              <button className="rounded bg-black px-3 py-2 text-white lg:col-span-2" type="submit">
+                {editing ? "Update School" : "Create School"}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );
