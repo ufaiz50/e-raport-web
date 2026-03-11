@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, GraduationCap, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, GraduationCap, ShieldAlert } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
 
@@ -24,6 +25,8 @@ type ToastState = {
 export default function LoginPage() {
   const router = useRouter();
   const [toast, setToast] = useState<ToastState>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const {
     register,
     handleSubmit,
@@ -72,8 +75,20 @@ export default function LoginPage() {
 
       <section className="relative mx-auto grid w-full max-w-5xl gap-6 rounded-3xl border border-white/60 bg-white/80 p-4 shadow-2xl backdrop-blur-md md:grid-cols-2 md:p-6">
         <div className="rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 p-6 text-white md:p-8">
-          <div className="mb-6 inline-flex rounded-xl bg-white/20 p-3">
-            <GraduationCap className="size-8" />
+          <div className="mb-6 inline-flex min-h-16 min-w-16 items-center justify-center rounded-xl bg-white/20 p-3">
+            {logoError ? (
+              <GraduationCap className="size-8" />
+            ) : (
+              <Image
+                src="/school-logo.png"
+                alt="School logo"
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-lg object-contain"
+                onError={() => setLogoError(true)}
+                priority
+              />
+            )}
           </div>
           <h1 className="text-2xl font-bold leading-tight md:text-3xl">E-Raport Sekolah</h1>
           <p className="mt-3 text-sm text-white/90 md:text-base">
@@ -98,12 +113,22 @@ export default function LoginPage() {
 
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
-              <input
-                type="password"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                placeholder="••••••••"
-                {...register("password")}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-11 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  placeholder="••••••••"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-slate-500 hover:text-slate-700"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
               {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
             </div>
 
