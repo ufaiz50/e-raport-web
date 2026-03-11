@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, Eye, EyeOff, GraduationCap, ShieldAlert } from "lucide-react";
+import { Eye, EyeOff, GraduationCap } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
+import { useToast } from "@/components/ui/toast-provider";
 
 const schema = z.object({
   username: z.string().min(1, "Username wajib"),
@@ -17,14 +18,9 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-type ToastState = {
-  message: string;
-  type: "success" | "error";
-} | null;
-
 export default function LoginPage() {
   const router = useRouter();
-  const [toast, setToast] = useState<ToastState>(null);
+  const { showToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const {
@@ -33,45 +29,20 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  useEffect(() => {
-    if (!toast) return;
-
-    const timer = setTimeout(() => setToast(null), 3200);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
   const onSubmit = async (values: FormValues) => {
-    setToast(null);
     try {
       const res = await api.post<{ token: string }>("/login", values);
       auth.setToken(res.data.token);
-      setToast({ message: "Login berhasil, mengarahkan ke dashboard...", type: "success" });
+      showToast("Login berhasil, mengarahkan ke dashboard...", "success");
       router.push("/students");
     } catch {
-      setToast({ message: "Login gagal. Cek kredensial/API key.", type: "error" });
+      showToast("Login gagal. Cek kredensial/API key.", "error");
     }
   };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-sky-100 via-white to-indigo-100 px-4 py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_85%_15%,rgba(99,102,241,0.24),transparent_32%)]" />
-
-      {toast && (
-        <div
-          className={`fixed right-4 top-4 z-50 flex w-[min(92vw,420px)] items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur animate-in fade-in slide-in-from-top-2 ${
-            toast.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-              : "border-red-200 bg-red-50 text-red-900"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-          ) : (
-            <ShieldAlert className="mt-0.5 size-5 shrink-0" />
-          )}
-          <p className="text-sm font-medium">{toast.message}</p>
-        </div>
-      )}
 
       <section className="relative mx-auto grid w-full max-w-5xl gap-6 rounded-3xl border border-white/60 bg-white/80 p-4 shadow-2xl backdrop-blur-md md:grid-cols-2 md:p-6">
         <div className="rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 p-6 text-white md:p-8">
