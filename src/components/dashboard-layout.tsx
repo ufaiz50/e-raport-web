@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BookOpenCheck, ClipboardList, GraduationCap, LogOut, Users } from "lucide-react";
+import { BarChart3, BookOpenCheck, ClipboardList, GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, School2, Users } from "lucide-react";
 import { auth } from "@/lib/auth";
 
 const menus = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/students", label: "Students" },
-  { href: "/classes", label: "Classes" },
-  { href: "/grades", label: "Grades" },
-  { href: "/reports", label: "Reports" },
+  { href: "/students", label: "Students", icon: Users },
+  { href: "/classes", label: "Classes", icon: School2 },
+  { href: "/grades", label: "Grades", icon: BookOpenCheck },
+  { href: "/reports", label: "Reports", icon: ClipboardList },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const onLogout = () => {
     auth.clearToken();
@@ -24,39 +26,53 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-indigo-100 p-4 md:p-6">
-      <div className="mx-auto flex max-w-7xl gap-6">
-        <aside className="w-64 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-xl backdrop-blur-md">
+      <div className="flex w-full gap-6">
+        <aside className={`${sidebarCollapsed ? "w-20" : "w-64"} rounded-3xl border border-white/60 bg-white/80 p-4 shadow-xl backdrop-blur-md transition-all duration-200`}>
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+              {!sidebarCollapsed && "Toggle"}
+            </button>
+          </div>
+
           <div className="mb-6 flex items-center gap-3">
             <div className="rounded-xl bg-gradient-to-br from-sky-600 to-indigo-700 p-2.5 text-white">
               <GraduationCap className="size-5" />
             </div>
-            <div>
+            <div className={sidebarCollapsed ? "hidden" : "block"}>
               <h2 className="text-lg font-semibold text-slate-900">E-Raport</h2>
               <p className="text-xs text-slate-500">School Management</p>
             </div>
           </div>
 
-          <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Main menu</div>
+          {!sidebarCollapsed && (
+            <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Main menu</div>
+          )}
           <nav className="space-y-1">
             {menus.map((m) => (
-              <NavItem key={m.href} href={m.href} label={m.label} pathname={pathname} />
+              <NavItem key={m.href} href={m.href} label={m.label} pathname={pathname} icon={m.icon} collapsed={sidebarCollapsed} />
             ))}
           </nav>
 
-          <div className="mt-6 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">
-            <div className="mb-2 font-medium text-slate-800">Quick tips</div>
-            <ul className="space-y-1.5">
-              <li className="flex items-center gap-2"><Users className="size-3.5" /> Review student data weekly</li>
-              <li className="flex items-center gap-2"><BookOpenCheck className="size-3.5" /> Keep grades updated per semester</li>
-              <li className="flex items-center gap-2"><ClipboardList className="size-3.5" /> Finalize reports before print</li>
-            </ul>
-          </div>
+          {!sidebarCollapsed && (
+            <div className="mt-6 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">
+              <div className="mb-2 font-medium text-slate-800">Quick tips</div>
+              <ul className="space-y-1.5">
+                <li className="flex items-center gap-2"><Users className="size-3.5" /> Review student data weekly</li>
+                <li className="flex items-center gap-2"><BookOpenCheck className="size-3.5" /> Keep grades updated per semester</li>
+                <li className="flex items-center gap-2"><ClipboardList className="size-3.5" /> Finalize reports before print</li>
+              </ul>
+            </div>
+          )}
 
           <button
             onClick={onLogout}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
           >
-            <LogOut className="size-4" /> Logout
+            <LogOut className="size-4" /> {!sidebarCollapsed && "Logout"}
           </button>
         </aside>
 
@@ -68,7 +84,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavItem({ href, label, pathname }: { href: string; label: string; pathname: string }) {
+function NavItem({ href, label, pathname, icon: Icon, collapsed }: { href: string; label: string; pathname: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean }) {
   const active = pathname === href;
 
   return (
@@ -80,7 +96,10 @@ function NavItem({ href, label, pathname }: { href: string; label: string; pathn
           : "text-slate-700 hover:bg-slate-100"
       }`}
     >
-      {label}
+      <span className={`inline-flex items-center ${collapsed ? "justify-center" : "gap-2"} w-full`}>
+        <Icon className="size-4" />
+        {!collapsed && label}
+      </span>
     </Link>
   );
 }
