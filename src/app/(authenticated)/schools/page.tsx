@@ -9,7 +9,8 @@ import type { ListResponse } from "@/types/api";
 import { Modal } from "@/components/ui/modal";
 import { BookText, Hash, ImageIcon, MapPin, Pencil, Plus, School, Signature, Trash2, UserRound } from "lucide-react";
 
-const LIMIT = 10;
+const DEFAULT_LIMIT = 10;
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 type School = {
   id: number;
@@ -40,6 +41,7 @@ export default function SchoolsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [offset, setOffset] = useState(0);
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [form, setForm] = useState<SchoolPayload>(emptyForm);
   const [editing, setEditing] = useState<School | null>(null);
   const [openModal, setOpenModal] = useState(false);
@@ -52,9 +54,9 @@ export default function SchoolsPage() {
   }, [router]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["schools", offset],
+    queryKey: ["schools", offset, limit],
     queryFn: async () => {
-      const res = await api.get<ListResponse<School>>(`/schools?offset=${offset}&limit=${LIMIT}`);
+      const res = await api.get<ListResponse<School>>(`/schools?offset=${offset}&limit=${limit}`);
       return res.data;
     },
   });
@@ -86,8 +88,24 @@ export default function SchoolsPage() {
   const canPrev = offset > 0;
   const canNext = useMemo(() => {
     if (!data?.meta) return false;
-    return offset + LIMIT < data.meta.total;
-  }, [data?.meta, offset]);
+    return offset + limit < data.meta.total;
+  }, [data?.meta, offset, limit]);
+
+  const totalPages = useMemo(() => {
+    if (!data?.meta?.total) return 1;
+    return Math.max(1, Math.ceil(data.meta.total / limit));
+  }, [data, limit]);
+
+  const currentPage = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit]);
+
+  const pageNumbers = useMemo(() => {
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (totalPages <= 7) return pages;
+
+    if (currentPage <= 4) return [1, 2, 3, 4, 5, -1, totalPages];
+    if (currentPage >= totalPages - 3) return [1, -1, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, -1, currentPage - 1, currentPage, currentPage + 1, -1, totalPages];
+  }, [currentPage, totalPages]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +158,23 @@ export default function SchoolsPage() {
             <div>
               Total: <span className="font-semibold text-slate-800">{data.meta.total}</span> • Menampilkan: <span className="font-semibold text-slate-800">{data.meta.count}</span>
             </div>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">Offset {data.meta.offset}</span>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500">Data per page</label>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setOffset(0);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -148,7 +182,7 @@ export default function SchoolsPage() {
               <table className="w-full min-w-[760px] border-collapse">
                 <thead>
                   <tr className="bg-slate-50/90 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">ID</th>
+                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">No</th>
                     <th className="border-b border-slate-200 px-4 py-3 font-semibold">School</th>
                     <th className="border-b border-slate-200 px-4 py-3 font-semibold">Code</th>
                     <th className="border-b border-slate-200 px-4 py-3 font-semibold">NPSN</th>
@@ -159,7 +193,7 @@ export default function SchoolsPage() {
                 <tbody>
                   {data.data.map((s, idx) => (
                     <tr key={s.id} className={`${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"} transition hover:bg-indigo-50/50`}>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-700">#{s.id}</td>
+                      <td className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-700">{offset + idx + 1}</td>
                       <td className="border-b border-slate-100 px-4 py-3">
                         <div className="font-medium text-slate-900">{s.name}</div>
                         <div className="text-xs text-slate-500">{s.address || "No address"}</div>
@@ -193,8 +227,23 @@ export default function SchoolsPage() {
           </div>
 
           <div className="mt-4 flex gap-2">
-            <button disabled={!canPrev} onClick={() => setOffset((p) => Math.max(0, p - LIMIT))} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Prev</button>
-            <button disabled={!canNext} onClick={() => setOffset((p) => p + LIMIT)} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Next</button>
+            <button disabled={!canPrev} onClick={() => setOffset((p) => Math.max(0, p - limit))} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Prev</button>
+            <div className="flex items-center gap-1">
+              {pageNumbers.map((p, idx) =>
+                p === -1 ? (
+                  <span key={`dots-${idx}`} className="px-2 text-slate-400">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setOffset((p - 1) * limit)}
+                    className={`rounded-lg px-3 py-1.5 text-sm ${p === currentPage ? "bg-indigo-600 text-white" : "border border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
+            </div>
+            <button disabled={!canNext} onClick={() => setOffset((p) => p + limit)} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Next</button>
           </div>
         </>
       )}
