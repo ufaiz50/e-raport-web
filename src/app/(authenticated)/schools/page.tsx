@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
 import type { ListResponse } from "@/types/api";
+import { Modal } from "@/components/ui/modal";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 const LIMIT = 10;
 
@@ -121,7 +123,12 @@ export default function SchoolsPage() {
     <>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Schools (Super Admin)</h1>
-        <button onClick={openCreateModal} className="rounded bg-black px-3 py-2 text-sm text-white">Add School</button>
+        <button
+          onClick={openCreateModal}
+          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+        >
+          <Plus className="size-4" /> Add School
+        </button>
       </div>
 
       {isLoading && <p>Loading...</p>}
@@ -155,8 +162,18 @@ export default function SchoolsPage() {
                     <td className="border-b px-3 py-2">{s.principal_name ?? "-"}</td>
                     <td className="border-b px-3 py-2">
                       <div className="flex gap-2">
-                        <button onClick={() => onEdit(s)} className="rounded border px-2 py-1 text-xs">Edit</button>
-                        <button onClick={() => deleteMutation.mutate(s.id)} className="rounded border border-red-300 px-2 py-1 text-xs text-red-600">Delete</button>
+                        <button
+                          onClick={() => onEdit(s)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                        >
+                          <Pencil className="size-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => deleteMutation.mutate(s.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+                        >
+                          <Trash2 className="size-3" /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -172,35 +189,24 @@ export default function SchoolsPage() {
         </>
       )}
 
-      {openModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{editing ? "Update School" : "Create School"}</h2>
-              <button
-                onClick={() => setOpenModal(false)}
-                className="rounded border px-2 py-1 text-xs"
-              >
-                Close
-              </button>
-            </div>
-
-            <form onSubmit={onSubmit} className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              <input className="rounded border px-3 py-2" placeholder="Name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
-              <input className="rounded border px-3 py-2" placeholder="Code" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
-              <input className="rounded border px-3 py-2" placeholder="Address" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
-              <input className="rounded border px-3 py-2" placeholder="NPSN" value={form.npsn ?? ""} onChange={(e) => setForm((p) => ({ ...p, npsn: e.target.value }))} />
-              <input className="rounded border px-3 py-2" placeholder="Principal Name" value={form.principal_name ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_name: e.target.value }))} />
-              <input className="rounded border px-3 py-2" placeholder="Principal NIP" value={form.principal_nip ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_nip: e.target.value }))} />
-              <input className="rounded border px-3 py-2" placeholder="Headmaster Sign URL" value={form.headmaster_sign ?? ""} onChange={(e) => setForm((p) => ({ ...p, headmaster_sign: e.target.value }))} />
-              <input className="rounded border px-3 py-2" placeholder="School Stamp URL" value={form.school_stamp ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_stamp: e.target.value }))} />
-              <button className="rounded bg-black px-3 py-2 text-white lg:col-span-2" type="submit">
-                {editing ? "Update School" : "Create School"}
-              </button>
-            </form>
+      <Modal open={openModal} title={editing ? "Update School" : "Create School"} onClose={() => setOpenModal(false)}>
+        <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Code" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Address" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NPSN" value={form.npsn ?? ""} onChange={(e) => setForm((p) => ({ ...p, npsn: e.target.value }))} />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Principal Name" value={form.principal_name ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_name: e.target.value }))} />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Principal NIP" value={form.principal_nip ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_nip: e.target.value }))} />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Headmaster Sign URL" value={form.headmaster_sign ?? ""} onChange={(e) => setForm((p) => ({ ...p, headmaster_sign: e.target.value }))} />
+          <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="School Stamp URL" value={form.school_stamp ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_stamp: e.target.value }))} />
+          <div className="lg:col-span-2 flex justify-end gap-2 pt-1">
+            <button type="button" onClick={() => setOpenModal(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+            <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700" type="submit">
+              {editing ? "Update School" : "Create School"}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </>
   );
 }
