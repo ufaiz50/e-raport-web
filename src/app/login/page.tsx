@@ -31,8 +31,13 @@ export default function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const res = await api.post<{ token: string }>("/login", values);
-      auth.setToken(res.data.token);
+      const res = await api.post<{ token?: string; access_token?: string; refresh_token?: string }>("/login", values);
+      const accessToken = res.data.access_token ?? res.data.token;
+      if (!accessToken) throw new Error("missing token");
+      auth.setToken(accessToken);
+      if (res.data.refresh_token) {
+        auth.setRefreshToken(res.data.refresh_token);
+      }
       showToast("Login berhasil, mengarahkan ke dashboard...", "success");
       router.push("/dashboard");
     } catch {

@@ -1,4 +1,4 @@
-import { TOKEN_KEY } from "@/lib/constants";
+import { REFRESH_TOKEN_KEY, TOKEN_KEY } from "@/lib/constants";
 
 type AuthClaims = {
   username?: string;
@@ -23,8 +23,13 @@ function decodeJwtPayload(token: string): AuthClaims | null {
 
 export const auth = {
   getToken: () => (typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY)),
+  getRefreshToken: () => (typeof window === "undefined" ? null : localStorage.getItem(REFRESH_TOKEN_KEY)),
   setToken: (token: string) => localStorage.setItem(TOKEN_KEY, token),
-  clearToken: () => localStorage.removeItem(TOKEN_KEY),
+  setRefreshToken: (token: string) => localStorage.setItem(REFRESH_TOKEN_KEY, token),
+  clearToken: () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  },
   isLoggedIn: () => !!(typeof window !== "undefined" && localStorage.getItem(TOKEN_KEY)),
   getClaims: (): AuthClaims | null => {
     if (typeof window === "undefined") return null;

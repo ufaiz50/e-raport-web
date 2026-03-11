@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, API_KEY, TOKEN_KEY } from "@/lib/constants";
+import { API_BASE_URL, API_KEY, REFRESH_TOKEN_KEY, TOKEN_KEY } from "@/lib/constants";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -8,6 +8,9 @@ export const api = axios.create({
     ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
   },
 });
+
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
@@ -21,13 +24,62 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (typeof window !== "undefined" && error?.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
+  async (error) => {
+    if (typeof window === "undefined") {
+      return Promise.reject(error);
+    }
 
-      const onLoginPage = window.location.pathname.startsWith("/login");
-      if (!onLoginPage) {
-        window.location.href = "/login";
+    const originalRequest = error?.config as (typeof error.config & { _retry?: boolean }) | undefined;
+    const status = error?.response?.status;
+
+    if (status === 401 && originalRequest?.url?.includes("/refresh")) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
+      originalRequest._retry = true;
+
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = api
+          .post<{ token?: string; access_token?: string; refresh_token?: string }>("/refresh", { refresh_token: refreshToken })
+          .then((res) => {
+            const nextAccessToken = res.data.access_token ?? res.data.token ?? null;
+            if (nextAccessToken) {
+              localStorage.setItem(TOKEN_KEY, nextAccessToken);
+            }
+            if (res.data.refresh_token) {
+              localStorage.setItem(REFRESH_TOKEN_KEY, res.data.refresh_token);
+            }
+            return nextAccessToken;
+          })
+          .catch(() => {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+            if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
+            return null;
+          })
+          .finally(() => {
+            isRefreshing = false;
+          });
+      }
+
+      const refreshedAccessToken = await refreshPromise;
+      if (refreshedAccessToken) {
+        originalRequest.headers = originalRequest.headers ?? {};
+        originalRequest.headers.Authorization = `Bearer ${refreshedAccessToken}`;
+        return api(originalRequest);
       }
     }
 
