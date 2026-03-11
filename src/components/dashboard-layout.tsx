@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, BookOpenCheck, Building2, ClipboardList, GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, School2, Users } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { api } from "@/lib/api/client";
 
 const menus = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -32,7 +33,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     [role],
   );
 
-  const onLogout = () => {
+  const onLogout = async () => {
+    try {
+      await api.post("/logout", {});
+    } catch {}
     auth.clearToken();
     router.push("/login");
   };

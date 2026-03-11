@@ -1,8 +1,9 @@
 import axios from "axios";
-import { API_BASE_URL, API_KEY, REFRESH_TOKEN_KEY, TOKEN_KEY } from "@/lib/constants";
+import { API_BASE_URL, API_KEY, TOKEN_KEY } from "@/lib/constants";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
@@ -34,39 +35,26 @@ api.interceptors.response.use(
 
     if (status === 401 && originalRequest?.url?.includes("/refresh")) {
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
       if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
       return Promise.reject(error);
     }
 
     if (status === 401 && originalRequest && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!refreshToken) {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
-        return Promise.reject(error);
-      }
-
       originalRequest._retry = true;
 
       if (!isRefreshing) {
         isRefreshing = true;
         refreshPromise = api
-          .post<{ token?: string; access_token?: string; refresh_token?: string }>("/refresh", { refresh_token: refreshToken })
+          .post<{ token?: string; access_token?: string }>("/refresh", {})
           .then((res) => {
             const nextAccessToken = res.data.access_token ?? res.data.token ?? null;
             if (nextAccessToken) {
               localStorage.setItem(TOKEN_KEY, nextAccessToken);
             }
-            if (res.data.refresh_token) {
-              localStorage.setItem(REFRESH_TOKEN_KEY, res.data.refresh_token);
-            }
             return nextAccessToken;
           })
           .catch(() => {
             localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(REFRESH_TOKEN_KEY);
             if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
             return null;
           })
