@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BookOpenCheck, ClipboardList, GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, School2, Users } from "lucide-react";
+import { BarChart3, BookOpenCheck, Building2, ClipboardList, GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, School2, Users } from "lucide-react";
 import { auth } from "@/lib/auth";
 
 const menus = [
@@ -12,12 +12,25 @@ const menus = [
   { href: "/classes", label: "Classes", icon: School2 },
   { href: "/grades", label: "Grades", icon: BookOpenCheck },
   { href: "/reports", label: "Reports", icon: ClipboardList },
+  { href: "/schools", label: "Schools", icon: Building2, onlyRole: "super_admin" },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [role] = useState<string | null>(() => auth.getRole());
+
+  useEffect(() => {
+    if (pathname.startsWith("/schools") && role && role !== "super_admin") {
+      router.replace("/dashboard");
+    }
+  }, [pathname, role, router]);
+
+  const filteredMenus = useMemo(
+    () => menus.filter((m) => !m.onlyRole || m.onlyRole === role),
+    [role],
+  );
 
   const onLogout = () => {
     auth.clearToken();
@@ -52,7 +65,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Main menu</div>
           )}
           <nav className="space-y-1">
-            {menus.map((m) => (
+            {filteredMenus.map((m) => (
               <NavItem key={m.href} href={m.href} label={m.label} pathname={pathname} icon={m.icon} collapsed={sidebarCollapsed} />
             ))}
           </nav>
