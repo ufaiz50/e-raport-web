@@ -54,7 +54,7 @@ export function DataTable<T>({
           Total: <span className="font-semibold text-slate-800">{total}</span> • Menampilkan: <span className="font-semibold text-slate-800">{rows.length}</span>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-500">Data per page</label>
+          <label className="text-xs font-medium text-slate-500">Data per halaman</label>
           <select
             value={limit}
             onChange={(e) => onLimitChange(Number(e.target.value))}
@@ -97,7 +97,7 @@ export function DataTable<T>({
       </div>
 
       <div className="mt-4 flex gap-2">
-        <button disabled={!canPrev} onClick={() => onOffsetChange(Math.max(0, offset - limit))} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Prev</button>
+        <button disabled={!canPrev} onClick={() => onOffsetChange(Math.max(0, offset - limit))} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Sebelumnya</button>
         <div className="flex items-center gap-1">
           {pageNumbers.map((p, idx) =>
             p === -1 ? (
@@ -113,7 +113,7 @@ export function DataTable<T>({
             ),
           )}
         </div>
-        <button disabled={!canNext} onClick={() => onOffsetChange(offset + limit)} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Next</button>
+        <button disabled={!canNext} onClick={() => onOffsetChange(offset + limit)} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Berikutnya</button>
       </div>
     </>
   );

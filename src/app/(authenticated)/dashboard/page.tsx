@@ -85,7 +85,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-700 p-6 text-white">
         <p className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
-          <Sparkles className="size-3.5" /> Executive Dashboard
+          <Sparkles className="size-3.5" /> Dasbor Eksekutif
         </p>
         <h1 className="mt-3 text-3xl font-bold">Dashboard E-Raport</h1>
         <p className="mt-1 text-sm text-white/90">Ringkasan eksekutif untuk memantau progres akademik dan kelengkapan data sekolah.</p>
@@ -96,11 +96,11 @@ export default function DashboardPage() {
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <StatCard title="Students" value={totals.students} icon={<Users className="size-5" />} color="sky" />
-            <StatCard title="Classes" value={totals.classes} icon={<Building2 className="size-5" />} color="indigo" />
-            <StatCard title="Grades" value={totals.grades} icon={<BookOpenCheck className="size-5" />} color="emerald" />
-            <StatCard title="Attendances" value={totals.attendances} icon={<ClipboardList className="size-5" />} color="amber" />
-            <StatCard title="Report Notes" value={totals.report_notes} icon={<FileText className="size-5" />} color="rose" />
+            <StatCard title="Siswa" value={totals.students} icon={<Users className="size-5" />} color="sky" />
+            <StatCard title="Kelas" value={totals.classes} icon={<Building2 className="size-5" />} color="indigo" />
+            <StatCard title="Nilai" value={totals.grades} icon={<BookOpenCheck className="size-5" />} color="emerald" />
+            <StatCard title="Absensi" value={totals.attendances} icon={<ClipboardList className="size-5" />} color="amber" />
+            <StatCard title="Catatan Rapor" value={totals.report_notes} icon={<FileText className="size-5" />} color="rose" />
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">

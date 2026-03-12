@@ -129,16 +129,16 @@ export default function SchoolsPage() {
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Schools (Super Admin)</h1>
+        <h1 className="text-2xl font-semibold">Sekolah (Super Admin)</h1>
         <button
           onClick={openCreateModal}
           className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
         >
-          <Plus className="size-4" /> Add School
+          <Plus className="size-4" /> Tambah Sekolah
         </button>
       </div>
 
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p>Memuat...</p>}
       {isError && <p className="text-red-600">Gagal ambil data schools.</p>}
 
       {!!data && (
@@ -161,17 +161,17 @@ export default function SchoolsPage() {
             },
             {
               key: "school",
-              header: "School",
+              header: "Sekolah",
               render: (s) => (
                 <>
                   <div className="font-medium text-slate-900">{s.name}</div>
-                  <div className="text-xs text-slate-500">{s.address || "No address"}</div>
+                  <div className="text-xs text-slate-500">{s.address || "Alamat belum diisi"}</div>
                 </>
               ),
             },
             {
               key: "code",
-              header: "Code",
+              header: "Kode",
               render: (s) => <span className="text-sm text-slate-700">{s.code}</span>,
             },
             {
@@ -181,12 +181,12 @@ export default function SchoolsPage() {
             },
             {
               key: "principal",
-              header: "Principal",
+              header: "Kepala Sekolah",
               render: (s) => <span className="text-sm text-slate-700">{s.principal_name ?? "-"}</span>,
             },
             {
               key: "action",
-              header: "Action",
+              header: "Aksi",
               className: "text-right",
               render: (s) => (
                 <div className="flex justify-end gap-2">
@@ -206,7 +206,7 @@ export default function SchoolsPage() {
                     onClick={() => deleteMutation.mutate(s.id)}
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                   >
-                    <Trash2 className="size-3" /> Delete
+                    <Trash2 className="size-3" /> Hapus
                   </button>
                 </div>
               ),
@@ -215,52 +215,52 @@ export default function SchoolsPage() {
         />
       )}
 
-      <Modal open={openModal} title={editing ? "Update School" : "Create School"} onClose={() => setOpenModal(false)}>
+      <Modal open={openModal} title={editing ? "Ubah Sekolah" : "Tambah Sekolah"} onClose={() => setOpenModal(false)}>
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <Field label="School Name" required icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="School Name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+          <Field label="Nama Sekolah" required icon={School}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama Sekolah" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
           </Field>
-          <Field label="Code" required icon={BookText}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Code" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
+          <Field label="Kode" required icon={BookText}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kode" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
           </Field>
-          <Field label="Address" icon={MapPin}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Address" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
+          <Field label="Alamat" icon={MapPin}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Alamat" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
           </Field>
           <Field label="NPSN" icon={Hash}>
             <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NPSN" value={form.npsn ?? ""} onChange={(e) => setForm((p) => ({ ...p, npsn: e.target.value }))} />
           </Field>
-          <Field label="Principal Name" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Principal Name" value={form.principal_name ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_name: e.target.value }))} />
+          <Field label="Nama Kepala Sekolah" icon={UserRound}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama Kepala Sekolah" value={form.principal_name ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_name: e.target.value }))} />
           </Field>
-          <Field label="Principal NIP" icon={Signature}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Principal NIP" value={form.principal_nip ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_nip: e.target.value }))} />
+          <Field label="NIP Kepala Sekolah" icon={Signature}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NIP Kepala Sekolah" value={form.principal_nip ?? ""} onChange={(e) => setForm((p) => ({ ...p, principal_nip: e.target.value }))} />
           </Field>
-          <Field label="Headmaster Sign URL" icon={ImageIcon}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Headmaster Sign URL" value={form.headmaster_sign ?? ""} onChange={(e) => setForm((p) => ({ ...p, headmaster_sign: e.target.value }))} />
+          <Field label="URL Tanda Tangan Kepala Sekolah" icon={ImageIcon}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="URL Tanda Tangan Kepala Sekolah" value={form.headmaster_sign ?? ""} onChange={(e) => setForm((p) => ({ ...p, headmaster_sign: e.target.value }))} />
           </Field>
-          <Field label="School Stamp URL" icon={ImageIcon}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="School Stamp URL" value={form.school_stamp ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_stamp: e.target.value }))} />
+          <Field label="URL Stempel Sekolah" icon={ImageIcon}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="URL Stempel Sekolah" value={form.school_stamp ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_stamp: e.target.value }))} />
           </Field>
           <div className="lg:col-span-2 flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => setOpenModal(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+            <button type="button" onClick={() => setOpenModal(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Batal</button>
             <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700" type="submit">
-              {editing ? "Update School" : "Create School"}
+              {editing ? "Simpan Perubahan" : "Buat Sekolah"}
             </button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={!!detailSchool} title="School Detail" onClose={() => setDetailSchool(null)}>
+      <Modal open={!!detailSchool} title="Detail Sekolah" onClose={() => setDetailSchool(null)}>
         {detailSchool && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <DetailItem label="School Name" value={detailSchool.name} />
-            <DetailItem label="Code" value={detailSchool.code} />
-            <DetailItem label="Address" value={detailSchool.address} />
+            <DetailItem label="Nama Sekolah" value={detailSchool.name} />
+            <DetailItem label="Kode" value={detailSchool.code} />
+            <DetailItem label="Alamat" value={detailSchool.address} />
             <DetailItem label="NPSN" value={detailSchool.npsn} />
-            <DetailItem label="Principal Name" value={detailSchool.principal_name} />
-            <DetailItem label="Principal NIP" value={detailSchool.principal_nip} />
-            <DetailItem label="Headmaster Sign URL" value={detailSchool.headmaster_sign} />
-            <DetailItem label="School Stamp URL" value={detailSchool.school_stamp} />
+            <DetailItem label="Nama Kepala Sekolah" value={detailSchool.principal_name} />
+            <DetailItem label="NIP Kepala Sekolah" value={detailSchool.principal_nip} />
+            <DetailItem label="URL Tanda Tangan Kepala Sekolah" value={detailSchool.headmaster_sign} />
+            <DetailItem label="URL Stempel Sekolah" value={detailSchool.school_stamp} />
           </div>
         )}
       </Modal>
@@ -285,7 +285,7 @@ function Field({
         <Icon className="size-3.5 text-slate-500" />
         <span className="font-medium">{label}</span>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${required ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"}`}>
-          {required ? "Required" : "Optional"}
+          {required ? "Wajib" : "Opsional"}
         </span>
       </span>
       {children}

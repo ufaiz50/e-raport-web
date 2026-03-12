@@ -85,12 +85,12 @@ export default function StudentsPage() {
 
   return (
     <>
-      <h1 className="mb-4 text-2xl font-semibold">Students</h1>
+      <h1 className="mb-4 text-2xl font-semibold">Siswa</h1>
 
       <form onSubmit={onSubmit} className="mb-6 grid grid-cols-1 gap-2 md:grid-cols-5">
         <input
           className="rounded border px-3 py-2"
-          placeholder="Name"
+          placeholder="Nama"
           value={form.name}
           onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
           required
@@ -113,13 +113,13 @@ export default function StudentsPage() {
         </select>
         <input
           className="rounded border px-3 py-2"
-          placeholder="Class ID (optional)"
+          placeholder="ID Kelas (opsional)"
           type="number"
           value={form.class_id ?? ""}
           onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value ? Number(e.target.value) : undefined }))}
         />
         <button className="rounded bg-black px-3 py-2 text-white" type="submit">
-          {editing ? "Update" : "Add"}
+          {editing ? "Update" : "Tambah"}
         </button>
       </form>
 
@@ -137,10 +137,10 @@ export default function StudentsPage() {
               <thead>
                 <tr className="bg-gray-50 text-left">
                   <th className="border-b px-3 py-2">ID</th>
-                  <th className="border-b px-3 py-2">Name</th>
+                  <th className="border-b px-3 py-2">Nama</th>
                   <th className="border-b px-3 py-2">Email</th>
-                  <th className="border-b px-3 py-2">Type</th>
-                  <th className="border-b px-3 py-2">Action</th>
+                  <th className="border-b px-3 py-2">Tipe</th>
+                  <th className="border-b px-3 py-2">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,7 +159,7 @@ export default function StudentsPage() {
                           onClick={() => deleteMutation.mutate(s.id)}
                           className="rounded border border-red-300 px-2 py-1 text-xs text-red-600"
                         >
-                          Delete
+                          Hapus
                         </button>
                       </div>
                     </td>

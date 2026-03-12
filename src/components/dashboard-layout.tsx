@@ -8,12 +8,12 @@ import { auth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 
 const menus = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/students", label: "Students", icon: Users },
-  { href: "/classes", label: "Classes", icon: School2 },
-  { href: "/grades", label: "Grades", icon: BookOpenCheck },
-  { href: "/reports", label: "Reports", icon: ClipboardList },
-  { href: "/schools", label: "Schools", icon: Building2, onlyRole: "super_admin" },
+  { href: "/dashboard", label: "Dasbor", icon: BarChart3 },
+  { href: "/students", label: "Siswa", icon: Users },
+  { href: "/classes", label: "Kelas", icon: School2 },
+  { href: "/grades", label: "Nilai", icon: BookOpenCheck },
+  { href: "/reports", label: "Laporan", icon: ClipboardList },
+  { href: "/schools", label: "Sekolah", icon: Building2, onlyRole: "super_admin" },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -51,7 +51,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
               {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-              {!sidebarCollapsed && "Toggle"}
+              {!sidebarCollapsed && "Tutup/Buka"}
             </button>
           </div>
 
@@ -61,12 +61,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className={sidebarCollapsed ? "hidden" : "block"}>
               <h2 className="text-lg font-semibold text-slate-900">E-Raport</h2>
-              <p className="text-xs text-slate-500">School Management</p>
+              <p className="text-xs text-slate-500">Manajemen Sekolah</p>
             </div>
           </div>
 
           {!sidebarCollapsed && (
-            <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Main menu</div>
+            <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Menu Utama</div>
           )}
           <nav className="space-y-1">
             {filteredMenus.map((m) => (
@@ -76,11 +76,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {!sidebarCollapsed && (
             <div className="mt-6 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">
-              <div className="mb-2 font-medium text-slate-800">Quick tips</div>
+              <div className="mb-2 font-medium text-slate-800">Tips Cepat</div>
               <ul className="space-y-1.5">
-                <li className="flex items-center gap-2"><Users className="size-3.5" /> Review student data weekly</li>
-                <li className="flex items-center gap-2"><BookOpenCheck className="size-3.5" /> Keep grades updated per semester</li>
-                <li className="flex items-center gap-2"><ClipboardList className="size-3.5" /> Finalize reports before print</li>
+                <li className="flex items-center gap-2"><Users className="size-3.5" /> Tinjau data siswa setiap minggu</li>
+                <li className="flex items-center gap-2"><BookOpenCheck className="size-3.5" /> Pastikan nilai diperbarui tiap semester</li>
+                <li className="flex items-center gap-2"><ClipboardList className="size-3.5" /> Finalisasi laporan sebelum cetak</li>
               </ul>
             </div>
           )}
@@ -89,7 +89,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             onClick={onLogout}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
           >
-            <LogOut className="size-4" /> {!sidebarCollapsed && "Logout"}
+            <LogOut className="size-4" /> {!sidebarCollapsed && "Keluar"}
           </button>
         </aside>
 
