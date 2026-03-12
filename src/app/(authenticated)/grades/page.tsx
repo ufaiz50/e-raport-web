@@ -176,9 +176,9 @@ export default function GradesPage() {
   });
 
   const booksQuery = useQuery({
-    queryKey: ["books-lookup"],
+    queryKey: ["subjects-lookup"],
     queryFn: async () => {
-      const res = await api.get<ListResponse<BookItem>>(`/books?offset=0&limit=200`);
+      const res = await api.get<ListResponse<BookItem>>(`/subjects?offset=0&limit=200`);
       return res.data;
     },
   });
@@ -188,7 +188,8 @@ export default function GradesPage() {
     if (!e) return "-";
     const student = studentsQuery.data?.data.find((s) => s.id === e.student_id);
     const cls = classesQuery.data?.data.find((c) => c.id === e.class_id);
-    return `${student?.name ?? `Siswa ${e.student_id}`} • ${cls?.name ?? `Kelas ${e.class_id}`} • ${e.academic_year} S${e.semester}`;
+    const studentName = `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim();
+    return `${studentName || `Siswa ${e.student_id}`} • ${cls?.name ?? `Kelas ${e.class_id}`} • ${e.academic_year} S${e.semester}`;
   };
 
   const gradeCreate = useMutation({

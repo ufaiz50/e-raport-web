@@ -47,9 +47,9 @@ export default function BooksPage() {
   const [detailBook, setDetailBook] = useState<BookItem | null>(null);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["books", offset, limit],
+    queryKey: ["subjects", offset, limit],
     queryFn: async () => {
-      const res = await api.get<ListResponse<BookItem>>(`/books?offset=${offset}&limit=${limit}`);
+      const res = await api.get<ListResponse<BookItem>>(`/subjects?offset=${offset}&limit=${limit}`);
       return res.data;
     },
   });
@@ -64,9 +64,9 @@ export default function BooksPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: BookPayload) => api.post("/books", payload),
+    mutationFn: (payload: BookPayload) => api.post("/subjects", payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
       setForm(emptyForm);
       setOpenModal(false);
       showToast("Mata pelajaran berhasil dibuat", "success");
@@ -75,9 +75,9 @@ export default function BooksPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: BookPayload }) => api.put(`/books/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: BookPayload }) => api.put(`/subjects/${id}`, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
       setEditing(null);
       setForm(emptyForm);
       setOpenModal(false);
@@ -87,9 +87,9 @@ export default function BooksPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/books/${id}`),
+    mutationFn: (id: number) => api.delete(`/subjects/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
       showToast("Mata pelajaran berhasil dihapus", "success");
     },
     onError: () => showToast("Gagal hapus mata pelajaran", "error"),
