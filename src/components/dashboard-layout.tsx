@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BookOpenCheck, BookText, Building2, ClipboardList, GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, School2, UserCog, Users } from "lucide-react";
+import { BarChart3, BookOpenCheck, BookText, Building2, ClipboardList, GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, School2, UserCog, Users, CalendarDays } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 
@@ -13,6 +13,7 @@ const menus = [
   { href: "/classes", label: "Kelas", icon: School2 },
   { href: "/books", label: "Mata Pelajaran", icon: BookText },
   { href: "/teachers", label: "Guru", icon: UserCog },
+  { href: "/academics", label: "Akademik", icon: CalendarDays },
   { href: "/grades", label: "Nilai", icon: BookOpenCheck },
   { href: "/reports", label: "Laporan", icon: ClipboardList },
   { href: "/schools", label: "Sekolah", icon: Building2, onlyRole: "super_admin" },
