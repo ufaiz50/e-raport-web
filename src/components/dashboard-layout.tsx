@@ -11,7 +11,7 @@ const menus = [
   { href: "/dashboard", label: "Dasbor", icon: BarChart3 },
   { href: "/students", label: "Siswa", icon: Users },
   { href: "/classes", label: "Kelas", icon: School2 },
-  { href: "/books", label: "Mata Pelajaran", icon: BookText },
+  { href: "/subjects", label: "Mata Pelajaran", icon: BookText },
   { href: "/teachers", label: "Guru", icon: UserCog },
   { href: "/academics", label: "Akademik", icon: CalendarDays },
   { href: "/grades", label: "Nilai", icon: BookOpenCheck },

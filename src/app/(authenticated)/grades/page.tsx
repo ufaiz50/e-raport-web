@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type { ListResponse } from "@/types/api";
@@ -40,10 +40,14 @@ type TeachingItem = {
   semester_id?: number;
 };
 
-type BookItem = { id: number; title: string; author: string };
+type SubjectItem = { id: number; title: string; author: string };
+
+type TeacherItem = { id: number; username: string };
 
 type GradeItem = {
   id: number;
+  semester_id?: number;
+  teaching_id?: number;
   enrollment_id?: number;
   student_id: number;
   book_id: number;
@@ -106,19 +110,21 @@ type ReportNotePayload = {
   homeroom_comment: string;
 };
 
-const DEFAULT_LIMIT = 10;
-
 export default function GradesPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  const [offset, setOffset] = useState(0);
-  const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [filterAcademicYearID, setFilterAcademicYearID] = useState<number | "">("");
+  const [filterSemesterID, setFilterSemesterID] = useState<number | "">("");
+  const [filterClassID, setFilterClassID] = useState<number | "">("");
+  const [filterTeacherID, setFilterTeacherID] = useState<number | "">("");
 
   const [gradeModalOpen, setGradeModalOpen] = useState(false);
   const [editingGrade, setEditingGrade] = useState<GradeItem | null>(null);
   const [detailGrade, setDetailGrade] = useState<GradeItem | null>(null);
   const [gradeForm, setGradeForm] = useState<GradePayload>({
+    semester_id: undefined,
+    teaching_id: undefined,
     enrollment_id: undefined,
     student_id: 0,
     book_id: 0,
@@ -150,83 +156,61 @@ export default function GradesPage() {
   });
 
   const gradesQuery = useQuery({
-    queryKey: ["grades", offset, limit],
+    queryKey: ["grades"],
     queryFn: async () => {
-      const res = await api.get<ListResponse<GradeItem>>(`/grades?offset=${offset}&limit=${limit}`);
+      const res = await api.get<ListResponse<GradeItem>>(`/grades?offset=0&limit=500`);
       return res.data;
     },
   });
 
   const attendancesQuery = useQuery({
     queryKey: ["attendances"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<AttendanceItem>>(`/attendances?offset=0&limit=100`);
-      return res.data;
-    },
+    queryFn: async () => (await api.get<ListResponse<AttendanceItem>>(`/attendances?offset=0&limit=100`)).data,
   });
 
   const notesQuery = useQuery({
     queryKey: ["report-notes"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<ReportNoteItem>>(`/report-notes?offset=0&limit=100`);
-      return res.data;
-    },
+    queryFn: async () => (await api.get<ListResponse<ReportNoteItem>>(`/report-notes?offset=0&limit=100`)).data,
   });
 
   const enrollmentsQuery = useQuery({
     queryKey: ["enrollments-active"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<Enrollment>>(`/enrollments?offset=0&limit=300&is_active=true`);
-      return res.data;
-    },
+    queryFn: async () => (await api.get<ListResponse<Enrollment>>(`/enrollments?offset=0&limit=500&is_active=true`)).data,
   });
 
   const studentsQuery = useQuery({
     queryKey: ["students-lookup"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<Student>>(`/students?offset=0&limit=500`);
-      return res.data;
-    },
-  });
-
-  const academicYearsQuery = useQuery({
-    queryKey: ["academic-years-lookup"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<AcademicYearItem>>(`/academic-years?offset=0&limit=200`);
-      return res.data;
-    },
-  });
-
-  const semestersQuery = useQuery({
-    queryKey: ["semesters-lookup"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<SemesterItem>>(`/semesters?offset=0&limit=200`);
-      return res.data;
-    },
-  });
-
-  const teachingsQuery = useQuery({
-    queryKey: ["teachings-lookup"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<TeachingItem>>(`/teachings?offset=0&limit=500`);
-      return res.data;
-    },
+    queryFn: async () => (await api.get<ListResponse<Student>>(`/students?offset=0&limit=500`)).data,
   });
 
   const classesQuery = useQuery({
     queryKey: ["classes-lookup"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<ClassItem>>(`/classes?offset=0&limit=200`);
-      return res.data;
-    },
+    queryFn: async () => (await api.get<ListResponse<ClassItem>>(`/classes?offset=0&limit=200`)).data,
   });
 
-  const booksQuery = useQuery({
+  const subjectsQuery = useQuery({
     queryKey: ["subjects-lookup"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<BookItem>>(`/subjects?offset=0&limit=200`);
-      return res.data;
-    },
+    queryFn: async () => (await api.get<ListResponse<SubjectItem>>(`/subjects?offset=0&limit=200`)).data,
+  });
+
+  const teachersQuery = useQuery({
+    queryKey: ["teachers-lookup"],
+    queryFn: async () => (await api.get<ListResponse<TeacherItem>>(`/teachers?offset=0&limit=300`)).data,
+  });
+
+  const academicYearsQuery = useQuery({
+    queryKey: ["academic-years-lookup"],
+    queryFn: async () => (await api.get<ListResponse<AcademicYearItem>>(`/academic-years?offset=0&limit=200`)).data,
+  });
+
+  const semestersQuery = useQuery({
+    queryKey: ["semesters-lookup"],
+    queryFn: async () => (await api.get<ListResponse<SemesterItem>>(`/semesters?offset=0&limit=200`)).data,
+  });
+
+  const teachingsQuery = useQuery({
+    queryKey: ["teachings-lookup"],
+    queryFn: async () => (await api.get<ListResponse<TeachingItem>>(`/teachings?offset=0&limit=500`)).data,
   });
 
   const semesterLabel = (semesterId?: number) => {
@@ -239,9 +223,10 @@ export default function GradesPage() {
   const teachingLabel = (teachingId?: number) => {
     const t = teachingsQuery.data?.data.find((x) => x.id === teachingId);
     if (!t) return "-";
-    const subject = booksQuery.data?.data.find((b) => b.id === t.subject_id);
+    const subject = subjectsQuery.data?.data.find((b) => b.id === t.subject_id);
     const cls = classesQuery.data?.data.find((c) => c.id === t.class_id);
-    return `${subject?.title ?? `Mapel ${t.subject_id}`} • ${cls?.name ?? `Kelas ${t.class_id}`}`;
+    const teacher = teachersQuery.data?.data.find((u) => u.id === t.teacher_id);
+    return `${subject?.title ?? `Mapel ${t.subject_id}`} • ${cls?.name ?? `Kelas ${t.class_id}`} • ${teacher?.username ?? `Guru ${t.teacher_id}`}`;
   };
 
   const enrollmentLabel = (enrollmentId?: number) => {
@@ -252,6 +237,26 @@ export default function GradesPage() {
     const studentName = `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim();
     return `${studentName || `Siswa ${e.student_id}`} • ${cls?.name ?? `Kelas ${e.class_id}`} • ${e.academic_year} S${e.semester}`;
   };
+
+  const filteredGrades = useMemo(() => {
+    const rows = gradesQuery.data?.data ?? [];
+    return rows.filter((g) => {
+      if (filterAcademicYearID) {
+        const sem = semestersQuery.data?.data.find((s) => s.id === (g.semester_id ?? 0));
+        if (!sem || sem.academic_year_id !== filterAcademicYearID) return false;
+      }
+      if (filterSemesterID && g.semester_id !== filterSemesterID) return false;
+      if (filterClassID) {
+        const t = teachingsQuery.data?.data.find((x) => x.id === (g.teaching_id ?? 0));
+        if (!t || t.class_id !== filterClassID) return false;
+      }
+      if (filterTeacherID) {
+        const t = teachingsQuery.data?.data.find((x) => x.id === (g.teaching_id ?? 0));
+        if (!t || t.teacher_id !== filterTeacherID) return false;
+      }
+      return true;
+    });
+  }, [gradesQuery.data?.data, semestersQuery.data?.data, teachingsQuery.data?.data, filterAcademicYearID, filterSemesterID, filterClassID, filterTeacherID]);
 
   const gradeCreate = useMutation({
     mutationFn: (payload: GradePayload) => api.post("/grades", payload),
@@ -307,9 +312,9 @@ export default function GradesPage() {
   const openCreateGrade = () => {
     setEditingGrade(null);
     setGradeForm({
-      enrollment_id: undefined,
       semester_id: undefined,
       teaching_id: undefined,
+      enrollment_id: undefined,
       student_id: 0,
       book_id: 0,
       semester: 1,
@@ -347,28 +352,40 @@ export default function GradesPage() {
           </button>
         </div>
 
+        <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+          <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={filterAcademicYearID} onChange={(e) => setFilterAcademicYearID(e.target.value ? Number(e.target.value) : "") }>
+            <option value="">Semua Tahun Ajaran</option>
+            {(academicYearsQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.year}</option>)}
+          </select>
+          <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={filterSemesterID} onChange={(e) => setFilterSemesterID(e.target.value ? Number(e.target.value) : "") }>
+            <option value="">Semua Semester</option>
+            {(semestersQuery.data?.data ?? []).filter((s) => !filterAcademicYearID || s.academic_year_id === filterAcademicYearID).map((x) => <option key={x.id} value={x.id}>{semesterLabel(x.id)}</option>)}
+          </select>
+          <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={filterClassID} onChange={(e) => setFilterClassID(e.target.value ? Number(e.target.value) : "") }>
+            <option value="">Semua Kelas</option>
+            {(classesQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.name} ({x.level})</option>)}
+          </select>
+          <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={filterTeacherID} onChange={(e) => setFilterTeacherID(e.target.value ? Number(e.target.value) : "") }>
+            <option value="">Semua Guru</option>
+            {(teachersQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.username}</option>)}
+          </select>
+        </div>
+
         {!!gradesQuery.data && (
           <DataTable
-            rows={gradesQuery.data.data}
-            total={gradesQuery.data.meta.total}
-            offset={offset}
-            limit={limit}
-            onOffsetChange={setOffset}
-            onLimitChange={(next) => {
-              setLimit(next);
-              setOffset(0);
-            }}
+            rows={filteredGrades}
+            total={filteredGrades.length}
+            offset={0}
+            limit={filteredGrades.length || 1}
+            onOffsetChange={() => {}}
+            onLimitChange={() => {}}
             rowKey={(row) => row.id}
             columns={[
-              { key: "no", header: "No", render: (_r, idx) => <span className="text-sm font-medium text-slate-700">{offset + idx + 1}</span> },
+              { key: "no", header: "No", render: (_r, idx) => <span className="text-sm font-medium text-slate-700">{idx + 1}</span> },
               { key: "enroll", header: "Enrollment", render: (g) => <span className="text-sm text-slate-700">{enrollmentLabel(g.enrollment_id)}</span> },
-              { key: "semester", header: "Semester", render: (g) => <span className="text-sm text-slate-700">{semesterLabel((g as GradeItem & { semester_id?: number }).semester_id)}</span> },
-              { key: "teaching", header: "Pengajaran", render: (g) => <span className="text-sm text-slate-700">{teachingLabel((g as GradeItem & { teaching_id?: number }).teaching_id)}</span> },
-              {
-                key: "mapel",
-                header: "Mata Pelajaran",
-                render: (g) => <span className="text-sm text-slate-700">{booksQuery.data?.data.find((b) => b.id === g.book_id)?.title ?? `ID ${g.book_id}`}</span>,
-              },
+              { key: "semester", header: "Semester", render: (g) => <span className="text-sm text-slate-700">{semesterLabel(g.semester_id)}</span> },
+              { key: "teaching", header: "Pengajaran", render: (g) => <span className="text-sm text-slate-700">{teachingLabel(g.teaching_id)}</span> },
+              { key: "mapel", header: "Mata Pelajaran", render: (g) => <span className="text-sm text-slate-700">{subjectsQuery.data?.data.find((b) => b.id === g.book_id)?.title ?? `ID ${g.book_id}`}</span> },
               { key: "akhir", header: "Nilai Akhir", render: (g) => <span className="font-semibold text-slate-900">{g.final_score.toFixed(1)}</span> },
               {
                 key: "aksi",
@@ -381,9 +398,9 @@ export default function GradesPage() {
                       onClick={() => {
                         setEditingGrade(g);
                         setGradeForm({
+                          semester_id: g.semester_id,
+                          teaching_id: g.teaching_id,
                           enrollment_id: g.enrollment_id,
-                          semester_id: (g as GradeItem & { semester_id?: number }).semester_id,
-                          teaching_id: (g as GradeItem & { teaching_id?: number }).teaching_id,
                           student_id: g.student_id,
                           book_id: g.book_id,
                           semester: g.semester,
@@ -445,11 +462,8 @@ export default function GradesPage() {
               showToast("Enrollment dan mata pelajaran wajib dipilih", "error");
               return;
             }
-            if (editingGrade) {
-              gradeUpdate.mutate({ id: editingGrade.id, payload: gradeForm });
-            } else {
-              gradeCreate.mutate(gradeForm);
-            }
+            if (editingGrade) gradeUpdate.mutate({ id: editingGrade.id, payload: gradeForm });
+            else gradeCreate.mutate(gradeForm);
           }}
           className="grid grid-cols-1 gap-3 lg:grid-cols-2"
         >
@@ -457,9 +471,7 @@ export default function GradesPage() {
             <span className="font-medium">Enrollment</span>
             <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={gradeForm.enrollment_id ?? ""} onChange={(e) => onSelectEnrollment(Number(e.target.value), "grade")} required>
               <option value="">Pilih enrollment</option>
-              {(enrollmentsQuery.data?.data ?? []).map((x) => (
-                <option key={x.id} value={x.id}>{enrollmentLabel(x.id)}</option>
-              ))}
+              {(enrollmentsQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{enrollmentLabel(x.id)}</option>)}
             </select>
           </label>
 
@@ -467,9 +479,7 @@ export default function GradesPage() {
             <span className="font-medium">Semester</span>
             <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={gradeForm.semester_id ?? ""} onChange={(e) => setGradeForm((p) => ({ ...p, semester_id: e.target.value ? Number(e.target.value) : undefined }))}>
               <option value="">Pilih semester</option>
-              {(semestersQuery.data?.data ?? []).map((s) => (
-                <option key={s.id} value={s.id}>{semesterLabel(s.id)}</option>
-              ))}
+              {(semestersQuery.data?.data ?? []).map((s) => <option key={s.id} value={s.id}>{semesterLabel(s.id)}</option>)}
             </select>
           </label>
 
@@ -481,11 +491,7 @@ export default function GradesPage() {
               setGradeForm((p) => ({ ...p, teaching_id: teachingId, book_id: t?.subject_id ?? p.book_id }));
             }}>
               <option value="">Pilih pengajaran</option>
-              {(teachingsQuery.data?.data ?? [])
-                .filter((t) => !gradeForm.semester_id || t.semester_id === gradeForm.semester_id)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>{teachingLabel(t.id)}</option>
-                ))}
+              {(teachingsQuery.data?.data ?? []).filter((t) => !gradeForm.semester_id || t.semester_id === gradeForm.semester_id).map((t) => <option key={t.id} value={t.id}>{teachingLabel(t.id)}</option>)}
             </select>
           </label>
 
@@ -493,9 +499,7 @@ export default function GradesPage() {
             <span className="font-medium">Mata Pelajaran</span>
             <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={gradeForm.book_id || ""} onChange={(e) => setGradeForm((p) => ({ ...p, book_id: Number(e.target.value) }))} required>
               <option value="">Pilih mata pelajaran</option>
-              {(booksQuery.data?.data ?? []).map((b) => (
-                <option key={b.id} value={b.id}>{b.title}</option>
-              ))}
+              {(subjectsQuery.data?.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
             </select>
           </label>
 
@@ -530,9 +534,9 @@ export default function GradesPage() {
         {detailGrade && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 text-sm">
             <DetailItem label="Enrollment" value={enrollmentLabel(detailGrade.enrollment_id)} />
-            <DetailItem label="Semester" value={semesterLabel((detailGrade as GradeItem & { semester_id?: number }).semester_id)} />
-            <DetailItem label="Pengajaran" value={teachingLabel((detailGrade as GradeItem & { teaching_id?: number }).teaching_id)} />
-            <DetailItem label="Mata Pelajaran" value={booksQuery.data?.data.find((b) => b.id === detailGrade.book_id)?.title} />
+            <DetailItem label="Semester" value={semesterLabel(detailGrade.semester_id)} />
+            <DetailItem label="Pengajaran" value={teachingLabel(detailGrade.teaching_id)} />
+            <DetailItem label="Mata Pelajaran" value={subjectsQuery.data?.data.find((b) => b.id === detailGrade.book_id)?.title} />
             <DetailItem label="Pengetahuan" value={String(detailGrade.knowledge_score)} />
             <DetailItem label="Keterampilan" value={String(detailGrade.skill_score)} />
             <DetailItem label="Nilai Akhir" value={String(detailGrade.final_score)} />
@@ -555,9 +559,7 @@ export default function GradesPage() {
         >
           <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={attendanceForm.enrollment_id ?? ""} onChange={(e) => onSelectEnrollment(Number(e.target.value), "attendance")} required>
             <option value="">Pilih enrollment</option>
-            {(enrollmentsQuery.data?.data ?? []).map((x) => (
-              <option key={x.id} value={x.id}>{enrollmentLabel(x.id)}</option>
-            ))}
+            {(enrollmentsQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{enrollmentLabel(x.id)}</option>)}
           </select>
           <div className="grid grid-cols-3 gap-2">
             <input type="number" min={0} className="rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Sakit" value={attendanceForm.sick_days} onChange={(e) => setAttendanceForm((p) => ({ ...p, sick_days: Number(e.target.value) }))} />
@@ -585,9 +587,7 @@ export default function GradesPage() {
         >
           <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={noteForm.enrollment_id ?? ""} onChange={(e) => onSelectEnrollment(Number(e.target.value), "note")} required>
             <option value="">Pilih enrollment</option>
-            {(enrollmentsQuery.data?.data ?? []).map((x) => (
-              <option key={x.id} value={x.id}>{enrollmentLabel(x.id)}</option>
-            ))}
+            {(enrollmentsQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{enrollmentLabel(x.id)}</option>)}
           </select>
           <textarea className="rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Tulis catatan wali kelas" value={noteForm.homeroom_comment} onChange={(e) => setNoteForm((p) => ({ ...p, homeroom_comment: e.target.value }))} />
           <div className="flex justify-end gap-2">
