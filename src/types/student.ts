@@ -1,8 +1,19 @@
 export type Student = {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  type: "junior" | "senior";
+  nis?: string;
+  nisn?: string;
+  gender?: string;
+  birth_place?: string;
+  birth_date?: string;
+  address?: string;
+  phone?: string;
+  religion?: string;
+  parent_name?: string;
+  parent_phone?: string;
+  status?: string;
   class_id?: number;
   school_id?: number;
 };

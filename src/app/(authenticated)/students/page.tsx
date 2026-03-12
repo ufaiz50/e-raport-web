@@ -17,17 +17,39 @@ const DEFAULT_LIMIT = 10;
 type SchoolOption = { id: number; name: string };
 
 type StudentPayload = {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  type: "junior" | "senior";
-  class_id?: number;
+  nis?: string;
+  nisn?: string;
+  gender?: string;
+  birth_place?: string;
+  birth_date?: string;
+  address?: string;
+  phone?: string;
+  religion?: string;
+  parent_name?: string;
+  parent_phone?: string;
+  status?: string;
+  class_id: number | undefined;
   school_id?: number;
 };
 
 const emptyForm: StudentPayload = {
-  name: "",
+  first_name: "",
+  last_name: "",
   email: "",
-  type: "junior",
+  nis: "",
+  nisn: "",
+  gender: "",
+  birth_place: "",
+  birth_date: "",
+  address: "",
+  phone: "",
+  religion: "",
+  parent_name: "",
+  parent_phone: "",
+  status: "active",
   class_id: undefined,
   school_id: undefined,
 };
@@ -120,9 +142,20 @@ export default function StudentsPage() {
   const onEdit = (s: Student) => {
     setEditing(s);
     setForm({
-      name: s.name,
+      first_name: (s as Student & { first_name?: string }).first_name ?? "",
+      last_name: (s as Student & { last_name?: string }).last_name ?? "",
       email: s.email,
-      type: s.type,
+      nis: (s as Student & { nis?: string }).nis ?? "",
+      nisn: (s as Student & { nisn?: string }).nisn ?? "",
+      gender: (s as Student & { gender?: string }).gender ?? "",
+      birth_place: (s as Student & { birth_place?: string }).birth_place ?? "",
+      birth_date: (s as Student & { birth_date?: string }).birth_date ?? "",
+      address: (s as Student & { address?: string }).address ?? "",
+      phone: (s as Student & { phone?: string }).phone ?? "",
+      religion: (s as Student & { religion?: string }).religion ?? "",
+      parent_name: (s as Student & { parent_name?: string }).parent_name ?? "",
+      parent_phone: (s as Student & { parent_phone?: string }).parent_phone ?? "",
+      status: (s as Student & { status?: string }).status ?? "active",
       class_id: s.class_id,
       school_id: s.school_id,
     });
@@ -170,15 +203,15 @@ export default function StudentsPage() {
               header: "Nama",
               render: (s) => (
                 <>
-                  <div className="font-medium text-slate-900">{s.name}</div>
+                  <div className="font-medium text-slate-900">{(s as Student & { first_name?: string; last_name?: string }).first_name ?? ""} {(s as Student & { first_name?: string; last_name?: string }).last_name ?? ""}</div>
                   <div className="text-xs text-slate-500">{s.email}</div>
                 </>
               ),
             },
             {
-              key: "tipe",
-              header: "Tipe",
-              render: (s) => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{s.type}</span>,
+              key: "nis",
+              header: "NIS / NISN",
+              render: (s) => <span className="text-sm text-slate-700">{(s as Student & { nis?: string }).nis ?? "-"} / {(s as Student & { nisn?: string }).nisn ?? "-"}</span>,
             },
             {
               key: "kelas",
@@ -229,20 +262,26 @@ export default function StudentsPage() {
           )}
 
           <Field label="Nama" required icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama siswa" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama depan" value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} required />
+          </Field>
+          <Field label="Nama Belakang" required icon={UserRound}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama belakang" value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} required />
           </Field>
           <Field label="Email" required icon={Mail}>
             <input type="email" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required />
           </Field>
-          <Field label="Tipe" required icon={Layers}>
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as "junior" | "senior" }))}>
-              <option value="junior">junior</option>
-              <option value="senior">senior</option>
-            </select>
+          <Field label="NIS" icon={Layers}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NIS" value={form.nis ?? ""} onChange={(e) => setForm((p) => ({ ...p, nis: e.target.value }))} />
           </Field>
-          <Field label="Kelas" icon={School}>
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.class_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value ? Number(e.target.value) : undefined }))}>
-              <option value="">Pilih kelas (opsional)</option>
+          <Field label="NISN" icon={Layers}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NISN" value={form.nisn ?? ""} onChange={(e) => setForm((p) => ({ ...p, nisn: e.target.value }))} />
+          </Field>
+          <Field label="Alamat" icon={School}>
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Alamat" value={form.address ?? ""} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
+          </Field>
+          <Field label="Kelas" required icon={School}>
+            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.class_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value ? Number(e.target.value) : undefined }))} required>
+              <option value="">Pilih kelas</option>
               {(classesQuery.data?.data ?? []).map((k) => (
                 <option key={k.id} value={k.id}>{k.name} ({k.level})</option>
               ))}
@@ -262,8 +301,12 @@ export default function StudentsPage() {
         {detailStudent && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <DetailItem label="Nama" value={detailStudent.name} />
+            <DetailItem label="Nama Depan" value={(detailStudent as Student & { first_name?: string }).first_name} />
+            <DetailItem label="Nama Belakang" value={(detailStudent as Student & { last_name?: string }).last_name} />
             <DetailItem label="Email" value={detailStudent.email} />
-            <DetailItem label="Tipe" value={detailStudent.type} />
+            <DetailItem label="NIS" value={(detailStudent as Student & { nis?: string }).nis} />
+            <DetailItem label="NISN" value={(detailStudent as Student & { nisn?: string }).nisn} />
+            <DetailItem label="Alamat" value={(detailStudent as Student & { address?: string }).address} />
             <DetailItem label="Kelas" value={classesQuery.data?.data.find((k) => k.id === detailStudent.class_id)?.name} />
             {isSuperAdmin && (
               <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => s.id === detailStudent.school_id)?.name} />

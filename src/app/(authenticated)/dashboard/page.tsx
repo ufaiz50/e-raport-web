@@ -18,8 +18,8 @@ import {
 
 type StudentItem = {
   id: number;
-  name: string;
-  type: "junior" | "senior";
+  first_name: string;
+  last_name: string;
   email: string;
 };
 
@@ -169,9 +169,9 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 {(studentsPreviewQuery.data?.data ?? []).slice(0, PREVIEW_LIMIT).map((s) => (
                   <div key={s.id} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                    <div className="font-medium text-slate-800">{s.name}</div>
+                    <div className="font-medium text-slate-800">{s.first_name} {s.last_name}</div>
                     <div className="text-xs text-slate-500">
-                      {s.email} • {s.type}
+                      {s.email}
                     </div>
                   </div>
                 ))}
