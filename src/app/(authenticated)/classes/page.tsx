@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
+import { auth } from "@/lib/auth";
 import type { ListResponse } from "@/types/api";
 import type { ClassItem } from "@/types/class";
 import { Modal } from "@/components/ui/modal";
@@ -17,6 +18,12 @@ type ClassPayload = {
   level: string;
   homeroom?: string;
   academic_year: string;
+  school_id?: number;
+};
+
+type SchoolOption = {
+  id: number;
+  name: string;
 };
 
 const emptyForm: ClassPayload = {
@@ -29,6 +36,8 @@ const emptyForm: ClassPayload = {
 export default function ClassesPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const role = auth.getRole();
+  const isSuperAdmin = role === "super_admin";
 
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
@@ -36,6 +45,15 @@ export default function ClassesPage() {
   const [editing, setEditing] = useState<ClassItem | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [detailClass, setDetailClass] = useState<ClassItem | null>(null);
+
+  const schoolsQuery = useQuery({
+    queryKey: ["class-form", "schools", isSuperAdmin],
+    enabled: isSuperAdmin,
+    queryFn: async () => {
+      const res = await api.get<ListResponse<SchoolOption>>("/schools?offset=0&limit=100");
+      return res.data;
+    },
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["classes", offset, limit],
@@ -79,6 +97,12 @@ export default function ClassesPage() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSuperAdmin && !form.school_id) {
+      showToast("Sekolah wajib dipilih untuk super admin", "error");
+      return;
+    }
+
     if (editing) {
       updateMutation.mutate({ id: editing.id, payload: form });
     } else {
@@ -93,6 +117,7 @@ export default function ClassesPage() {
       level: row.level,
       homeroom: row.homeroom ?? "",
       academic_year: row.academic_year,
+      school_id: row.school_id,
     });
     setOpenModal(true);
   };
@@ -151,6 +176,18 @@ export default function ClassesPage() {
               header: "Tingkat",
               render: (k) => <span className="text-sm text-slate-700">{k.level}</span>,
             },
+            ...(isSuperAdmin
+              ? [
+                  {
+                    key: "sekolah",
+                    header: "Sekolah",
+                    render: (k: ClassItem) => {
+                      const schoolName = schoolsQuery.data?.data.find((s) => s.id === k.school_id)?.name;
+                      return <span className="text-sm text-slate-700">{schoolName ?? `ID ${k.school_id ?? "-"}`}</span>;
+                    },
+                  },
+                ]
+              : []),
             {
               key: "tahun",
               header: "Tahun Ajaran",
@@ -189,6 +226,29 @@ export default function ClassesPage() {
 
       <Modal open={openModal} title={editing ? "Ubah Kelas" : "Tambah Kelas"} onClose={() => setOpenModal(false)}>
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {isSuperAdmin && (
+            <Field label="Sekolah" required icon={School}>
+              <select
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                value={form.school_id ?? ""}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    school_id: e.target.value ? Number(e.target.value) : undefined,
+                  }))
+                }
+                required
+              >
+                <option value="">Pilih sekolah</option>
+                {(schoolsQuery.data?.data ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
           <Field label="Nama Kelas" required icon={School}>
             <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama Kelas" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
           </Field>
@@ -217,6 +277,12 @@ export default function ClassesPage() {
             <DetailItem label="Tingkat" value={detailClass.level} />
             <DetailItem label="Wali Kelas" value={detailClass.homeroom} />
             <DetailItem label="Tahun Ajaran" value={detailClass.academic_year} />
+            {isSuperAdmin && (
+              <DetailItem
+                label="Sekolah"
+                value={schoolsQuery.data?.data.find((s) => s.id === detailClass.school_id)?.name ?? (detailClass.school_id ? `ID ${detailClass.school_id}` : "-")}
+              />
+            )}
           </div>
         )}
       </Modal>
