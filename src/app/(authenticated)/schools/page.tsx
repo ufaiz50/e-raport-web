@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
 import type { ListResponse } from "@/types/api";
 import { Modal } from "@/components/ui/modal";
+import { DataTable } from "@/components/ui/data-table";
+import { useToast } from "@/components/ui/toast-provider";
 import { BookText, Eye, Hash, ImageIcon, MapPin, Pencil, Plus, School, Signature, Trash2, UserRound } from "lucide-react";
 
 const DEFAULT_LIMIT = 10;
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 type School = {
   id: number;
@@ -40,6 +41,7 @@ const emptyForm: SchoolPayload = {
 export default function SchoolsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [form, setForm] = useState<SchoolPayload>(emptyForm);
@@ -68,7 +70,9 @@ export default function SchoolsPage() {
       queryClient.invalidateQueries({ queryKey: ["schools"] });
       setForm(emptyForm);
       setOpenModal(false);
+      showToast("School berhasil dibuat", "success");
     },
+    onError: () => showToast("Gagal membuat school", "error"),
   });
 
   const updateMutation = useMutation({
@@ -78,35 +82,19 @@ export default function SchoolsPage() {
       setEditing(null);
       setForm(emptyForm);
       setOpenModal(false);
+      showToast("School berhasil diupdate", "success");
     },
+    onError: () => showToast("Gagal update school", "error"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/schools/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["schools"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["schools"] });
+      showToast("School berhasil dihapus", "success");
+    },
+    onError: () => showToast("Gagal hapus school", "error"),
   });
-
-  const canPrev = offset > 0;
-  const canNext = useMemo(() => {
-    if (!data?.meta) return false;
-    return offset + limit < data.meta.total;
-  }, [data?.meta, offset, limit]);
-
-  const totalPages = useMemo(() => {
-    if (!data?.meta?.total) return 1;
-    return Math.max(1, Math.ceil(data.meta.total / limit));
-  }, [data, limit]);
-
-  const currentPage = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit]);
-
-  const pageNumbers = useMemo(() => {
-    const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-    if (totalPages <= 7) return pages;
-
-    if (currentPage <= 4) return [1, 2, 3, 4, 5, -1, totalPages];
-    if (currentPage >= totalPages - 3) return [1, -1, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-    return [1, -1, currentPage - 1, currentPage, currentPage + 1, -1, totalPages];
-  }, [currentPage, totalPages]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,105 +142,77 @@ export default function SchoolsPage() {
       {isError && <p className="text-red-600">Gagal ambil data schools.</p>}
 
       {!!data && (
-        <>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
-            <div>
-              Total: <span className="font-semibold text-slate-800">{data.meta.total}</span> • Menampilkan: <span className="font-semibold text-slate-800">{data.meta.count}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-slate-500">Data per page</label>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setOffset(0);
-                }}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700"
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/90 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">No</th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">School</th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">Code</th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">NPSN</th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold">Principal</th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-semibold text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.data.map((s, idx) => (
-                    <tr key={s.id} className={`${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"} transition hover:bg-indigo-50/50`}>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-700">{offset + idx + 1}</td>
-                      <td className="border-b border-slate-100 px-4 py-3">
-                        <div className="font-medium text-slate-900">{s.name}</div>
-                        <div className="text-xs text-slate-500">{s.address || "No address"}</div>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">{s.code}</td>
-                      <td className="border-b border-slate-100 px-4 py-3">
-                        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{s.npsn ?? "-"}</span>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">{s.principal_name ?? "-"}</td>
-                      <td className="border-b border-slate-100 px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setDetailSchool(s)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
-                          >
-                            <Eye className="size-3" /> Detail
-                          </button>
-                          <button
-                            onClick={() => onEdit(s)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                          >
-                            <Pencil className="size-3" /> Edit
-                          </button>
-                          <button
-                            onClick={() => deleteMutation.mutate(s.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
-                          >
-                            <Trash2 className="size-3" /> Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <button disabled={!canPrev} onClick={() => setOffset((p) => Math.max(0, p - limit))} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Prev</button>
-            <div className="flex items-center gap-1">
-              {pageNumbers.map((p, idx) =>
-                p === -1 ? (
-                  <span key={`dots-${idx}`} className="px-2 text-slate-400">…</span>
-                ) : (
+        <DataTable
+          rows={data.data}
+          total={data.meta.total}
+          offset={offset}
+          limit={limit}
+          onOffsetChange={setOffset}
+          onLimitChange={(next) => {
+            setLimit(next);
+            setOffset(0);
+          }}
+          rowKey={(row) => row.id}
+          columns={[
+            {
+              key: "no",
+              header: "No",
+              render: (_row, idx) => <span className="text-sm font-medium text-slate-700">{offset + idx + 1}</span>,
+            },
+            {
+              key: "school",
+              header: "School",
+              render: (s) => (
+                <>
+                  <div className="font-medium text-slate-900">{s.name}</div>
+                  <div className="text-xs text-slate-500">{s.address || "No address"}</div>
+                </>
+              ),
+            },
+            {
+              key: "code",
+              header: "Code",
+              render: (s) => <span className="text-sm text-slate-700">{s.code}</span>,
+            },
+            {
+              key: "npsn",
+              header: "NPSN",
+              render: (s) => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{s.npsn ?? "-"}</span>,
+            },
+            {
+              key: "principal",
+              header: "Principal",
+              render: (s) => <span className="text-sm text-slate-700">{s.principal_name ?? "-"}</span>,
+            },
+            {
+              key: "action",
+              header: "Action",
+              className: "text-right",
+              render: (s) => (
+                <div className="flex justify-end gap-2">
                   <button
-                    key={p}
-                    onClick={() => setOffset((p - 1) * limit)}
-                    className={`rounded-lg px-3 py-1.5 text-sm ${p === currentPage ? "bg-indigo-600 text-white" : "border border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                    onClick={() => setDetailSchool(s)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
                   >
-                    {p}
+                    <Eye className="size-3" /> Detail
                   </button>
-                ),
-              )}
-            </div>
-            <button disabled={!canNext} onClick={() => setOffset((p) => p + limit)} className="rounded border px-3 py-2 text-sm disabled:opacity-40">Next</button>
-          </div>
-        </>
+                  <button
+                    onClick={() => onEdit(s)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                  >
+                    <Pencil className="size-3" /> Edit
+                  </button>
+                  <button
+                    onClick={() => deleteMutation.mutate(s.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+                  >
+                    <Trash2 className="size-3" /> Delete
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
       <Modal open={openModal} title={editing ? "Update School" : "Create School"} onClose={() => setOpenModal(false)}>
