@@ -7,7 +7,7 @@ import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
 import type { ListResponse } from "@/types/api";
 import { Modal } from "@/components/ui/modal";
-import { BookText, Hash, ImageIcon, MapPin, Pencil, Plus, School, Signature, Trash2, UserRound } from "lucide-react";
+import { BookText, Eye, Hash, ImageIcon, MapPin, Pencil, Plus, School, Signature, Trash2, UserRound } from "lucide-react";
 
 const DEFAULT_LIMIT = 10;
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
@@ -45,6 +45,7 @@ export default function SchoolsPage() {
   const [form, setForm] = useState<SchoolPayload>(emptyForm);
   const [editing, setEditing] = useState<School | null>(null);
   const [openModal, setOpenModal] = useState(false);
+  const [detailSchool, setDetailSchool] = useState<School | null>(null);
 
   useEffect(() => {
     const role = auth.getRole();
@@ -206,6 +207,12 @@ export default function SchoolsPage() {
                       <td className="border-b border-slate-100 px-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button
+                            onClick={() => setDetailSchool(s)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+                          >
+                            <Eye className="size-3" /> Detail
+                          </button>
+                          <button
                             onClick={() => onEdit(s)}
                             className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                           >
@@ -282,6 +289,21 @@ export default function SchoolsPage() {
           </div>
         </form>
       </Modal>
+
+      <Modal open={!!detailSchool} title="School Detail" onClose={() => setDetailSchool(null)}>
+        {detailSchool && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <DetailItem label="School Name" value={detailSchool.name} />
+            <DetailItem label="Code" value={detailSchool.code} />
+            <DetailItem label="Address" value={detailSchool.address} />
+            <DetailItem label="NPSN" value={detailSchool.npsn} />
+            <DetailItem label="Principal Name" value={detailSchool.principal_name} />
+            <DetailItem label="Principal NIP" value={detailSchool.principal_nip} />
+            <DetailItem label="Headmaster Sign URL" value={detailSchool.headmaster_sign} />
+            <DetailItem label="School Stamp URL" value={detailSchool.school_stamp} />
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
@@ -308,5 +330,14 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-sm text-slate-800 break-all">{value || "-"}</div>
+    </div>
   );
 }
