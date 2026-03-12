@@ -8,6 +8,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import axios from "axios";
 
 type AcademicYear = { id: number; year: string; is_active?: boolean };
 type Semester = { id: number; academic_year_id: number; name: string; order_no: number; is_active?: boolean };
@@ -23,6 +24,7 @@ export default function AcademicsPage() {
   const [tab, setTab] = useState<"years" | "semesters" | "curriculums" | "teachings">("years");
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: "year" | "semester" | "curriculum" | "teaching"; id: number; label: string } | null>(null);
 
   const [yearForm, setYearForm] = useState({ year: "", is_active: false });
   const [semesterForm, setSemesterForm] = useState({ academic_year_id: 0, name: "", order_no: 1, is_active: false });
@@ -40,18 +42,27 @@ export default function AcademicsPage() {
 
   const createYear = useMutation({ mutationFn: () => api.post("/academic-years", yearForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); showToast("Tahun ajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat tahun ajaran", "error") });
   const updateYear = useMutation({ mutationFn: () => api.put(`/academic-years/${editingId}`, yearForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); setEditingId(null); showToast("Tahun ajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update tahun ajaran", "error") });
-  const deleteYear = useMutation({ mutationFn: (id: number) => api.delete(`/academic-years/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); showToast("Tahun ajaran berhasil dihapus", "success"); }, onError: () => showToast("Gagal hapus tahun ajaran", "error") });
+  const deleteYear = useMutation({ mutationFn: (id: number) => api.delete(`/academic-years/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); showToast("Tahun ajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus tahun ajaran", "error") });
   const createSemester = useMutation({ mutationFn: () => api.post("/semesters", semesterForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); showToast("Semester berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat semester", "error") });
   const updateSemester = useMutation({ mutationFn: () => api.put(`/semesters/${editingId}`, semesterForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); setEditingId(null); showToast("Semester berhasil diupdate", "success"); }, onError: () => showToast("Gagal update semester", "error") });
-  const deleteSemester = useMutation({ mutationFn: (id: number) => api.delete(`/semesters/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); showToast("Semester berhasil dihapus", "success"); }, onError: () => showToast("Gagal hapus semester", "error") });
+  const deleteSemester = useMutation({ mutationFn: (id: number) => api.delete(`/semesters/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); showToast("Semester berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus semester", "error") });
   const createCurriculum = useMutation({ mutationFn: () => api.post("/curriculums", curriculumForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); showToast("Kurikulum berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat kurikulum", "error") });
   const updateCurriculum = useMutation({ mutationFn: () => api.put(`/curriculums/${editingId}`, curriculumForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); setEditingId(null); showToast("Kurikulum berhasil diupdate", "success"); }, onError: () => showToast("Gagal update kurikulum", "error") });
-  const deleteCurriculum = useMutation({ mutationFn: (id: number) => api.delete(`/curriculums/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); showToast("Kurikulum berhasil dihapus", "success"); }, onError: () => showToast("Gagal hapus kurikulum", "error") });
+  const deleteCurriculum = useMutation({ mutationFn: (id: number) => api.delete(`/curriculums/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); showToast("Kurikulum berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus kurikulum", "error") });
   const createTeaching = useMutation({ mutationFn: () => api.post("/teachings", teachingForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); showToast("Data pengajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat data pengajaran", "error") });
   const updateTeaching = useMutation({ mutationFn: () => api.put(`/teachings/${editingId}`, teachingForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); setEditingId(null); showToast("Data pengajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update data pengajaran", "error") });
-  const deleteTeaching = useMutation({ mutationFn: (id: number) => api.delete(`/teachings/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); showToast("Data pengajaran berhasil dihapus", "success"); }, onError: () => showToast("Gagal hapus data pengajaran", "error") });
+  const deleteTeaching = useMutation({ mutationFn: (id: number) => api.delete(`/teachings/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); showToast("Data pengajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus data pengajaran", "error") });
 
   const openCreate = () => { setEditingId(null); setOpenModal(true); };
+
+  const runDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.kind === "year") deleteYear.mutate(deleteTarget.id);
+    if (deleteTarget.kind === "semester") deleteSemester.mutate(deleteTarget.id);
+    if (deleteTarget.kind === "curriculum") deleteCurriculum.mutate(deleteTarget.id);
+    if (deleteTarget.kind === "teaching") deleteTeaching.mutate(deleteTarget.id);
+    setDeleteTarget(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -76,7 +87,7 @@ export default function AcademicsPage() {
           { key: "no", header: "No", render: (_r, i) => i + 1 },
           { key: "year", header: "Tahun", render: (r) => r.year },
           { key: "active", header: "Aktif", render: (r) => (r.is_active ? "Ya" : "Tidak") },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setYearForm({ year: r.year, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => deleteYear.mutate(r.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setYearForm({ year: r.year, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "year", id: r.id, label: `Tahun Ajaran ${r.year}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
@@ -86,7 +97,7 @@ export default function AcademicsPage() {
           { key: "year", header: "Tahun Ajaran", render: (r) => yearsQ.data?.data.find((y) => y.id === r.academic_year_id)?.year ?? "-" },
           { key: "name", header: "Nama Semester", render: (r) => r.name },
           { key: "order", header: "Urutan", render: (r) => r.order_no },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setSemesterForm({ academic_year_id: r.academic_year_id, name: r.name, order_no: r.order_no, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => deleteSemester.mutate(r.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setSemesterForm({ academic_year_id: r.academic_year_id, name: r.name, order_no: r.order_no, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "semester", id: r.id, label: `Semester ${r.name}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
@@ -96,7 +107,7 @@ export default function AcademicsPage() {
           { key: "name", header: "Nama Kurikulum", render: (r) => r.name },
           { key: "year", header: "Tahun", render: (r) => r.year || "-" },
           { key: "desc", header: "Deskripsi", render: (r) => r.description || "-" },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setCurriculumForm({ name: r.name, year: r.year || "", description: r.description || "" }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => deleteCurriculum.mutate(r.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setCurriculumForm({ name: r.name, year: r.year || "", description: r.description || "" }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "curriculum", id: r.id, label: `Kurikulum ${r.name}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
@@ -107,7 +118,7 @@ export default function AcademicsPage() {
           { key: "kelas", header: "Kelas", render: (r) => classesQ.data?.data.find((c) => c.id === r.class_id)?.name ?? `ID ${r.class_id}` },
           { key: "mapel", header: "Mata Pelajaran", render: (r) => (subjectsQ.data?.data.find((s) => s.id === r.subject_id)?.title || subjectsQ.data?.data.find((s) => s.id === r.subject_id)?.name || `ID ${r.subject_id}`) },
           { key: "semester", header: "Semester", render: (r) => semestersQ.data?.data.find((s) => s.id === r.semester_id)?.name ?? "-" },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setTeachingForm({ teacher_id: r.teacher_id, class_id: r.class_id, subject_id: r.subject_id, semester_id: r.semester_id || 0 }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => deleteTeaching.mutate(r.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setTeachingForm({ teacher_id: r.teacher_id, class_id: r.class_id, subject_id: r.subject_id, semester_id: r.semester_id || 0 }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "teaching", id: r.id, label: `Pengajaran #${r.id}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
@@ -155,12 +166,24 @@ export default function AcademicsPage() {
               <option value="">Pilih mata pelajaran</option>
               {(subjectsQ.data?.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.title || s.name}</option>)}
             </select>
-            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.semester_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, semester_id: Number(e.target.value) }))}>
+            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.semester_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, semester_id: Number(e.target.value) }))} required>
               <option value="">Pilih semester</option>
               {(semestersQ.data?.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm text-white">Simpan</button>
           </form>
+        )}
+      </Modal>
+
+      <Modal open={!!deleteTarget} title="Konfirmasi Hapus" onClose={() => setDeleteTarget(null)}>
+        {deleteTarget && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700">Yakin ingin menghapus <span className="font-semibold">{deleteTarget.label}</span>? Aksi ini tidak bisa dibatalkan.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteTarget(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Batal</button>
+              <button onClick={runDelete} className="rounded-xl bg-rose-600 px-4 py-2 text-sm text-white">Hapus</button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>
