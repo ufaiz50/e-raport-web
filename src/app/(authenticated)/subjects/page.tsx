@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
 import type { ListResponse } from "@/types/api";
+import type { Teacher } from "@/types/teacher";
+import { teacherDisplayName } from "@/types/teacher";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
@@ -19,12 +21,14 @@ type SubjectItem = {
   title: string;
   author: string;
   school_id?: number;
+  teacher_id?: number;
 };
 
 type SubjectPayload = {
   title: string;
   author: string;
   school_id?: number;
+  teacher_id?: number;
 };
 
 const emptyForm: SubjectPayload = {
@@ -59,6 +63,14 @@ export default function BooksPage() {
     enabled: isSuperAdmin,
     queryFn: async () => {
       const res = await api.get<ListResponse<SchoolOption>>("/schools?offset=0&limit=100");
+      return res.data;
+    },
+  });
+
+  const teachersQuery = useQuery({
+    queryKey: ["subject-form", "teachers"],
+    queryFn: async () => {
+      const res = await api.get<ListResponse<Teacher>>("/teachers?offset=0&limit=500");
       return res.data;
     },
   });
@@ -109,7 +121,7 @@ export default function BooksPage() {
 
   const onEdit = (b: SubjectItem) => {
     setEditing(b);
-    setForm({ title: b.title, author: b.author, school_id: b.school_id });
+    setForm({ title: b.title, author: b.author, school_id: b.school_id, teacher_id: b.teacher_id });
     setOpenModal(true);
   };
 
@@ -203,7 +215,27 @@ export default function BooksPage() {
             <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Contoh: Matematika" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
           </Field>
           <Field label="Pengampu" required icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama guru pengampu" value={form.author} onChange={(e) => setForm((p) => ({ ...p, author: e.target.value }))} required />
+            <select
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              value={form.teacher_id ?? ""}
+              onChange={(e) => {
+                const teacherId = e.target.value ? Number(e.target.value) : undefined;
+                const t = (teachersQuery.data?.data ?? []).find((x) => x.id === teacherId);
+                setForm((p) => ({
+                  ...p,
+                  teacher_id: teacherId,
+                  author: t ? teacherDisplayName(t) : "",
+                }));
+              }}
+              required
+            >
+              <option value="">Pilih guru pengampu</option>
+              {(teachersQuery.data?.data ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {teacherDisplayName(t)}
+                </option>
+              ))}
+            </select>
           </Field>
 
           <div className="lg:col-span-2 flex justify-end gap-2 pt-1">
