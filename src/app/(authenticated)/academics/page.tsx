@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type { ListResponse } from "@/types/api";
 import type { Teacher } from "@/types/teacher";
 import { teacherDisplayName } from "@/types/teacher";
+import type { School } from "@/types/school";
+import { auth } from "@/lib/auth";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
@@ -32,6 +34,12 @@ export default function AcademicsPage() {
   const [curriculumForm, setCurriculumForm] = useState({ name: "", year: "", description: "" });
   const [teachingForm, setTeachingForm] = useState({ teacher_id: 0, class_id: 0, subject_id: 0, semester_id: 0 });
 
+  // Super admin can work across multiple schools; others are bound to their school from token.
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number | "">("");
+
+  const role = useMemo(() => auth.getRole(), []);
+  const isSuperAdmin = role === "super_admin";
+
   const yearsQ = useQuery({ queryKey: ["academic-years"], queryFn: async () => (await api.get<ListResponse<AcademicYear>>("/academic-years?offset=0&limit=200")).data });
   const semestersQ = useQuery({ queryKey: ["semesters"], queryFn: async () => (await api.get<ListResponse<Semester>>("/semesters?offset=0&limit=200")).data });
   const curriculumsQ = useQuery({ queryKey: ["curriculums"], queryFn: async () => (await api.get<ListResponse<Curriculum>>("/curriculums?offset=0&limit=200")).data });
@@ -41,17 +49,35 @@ export default function AcademicsPage() {
   const classesQ = useQuery({ queryKey: ["classes-lookup"], queryFn: async () => (await api.get<ListResponse<ClassItem>>("/classes?offset=0&limit=200")).data });
   const subjectsQ = useQuery({ queryKey: ["subjects-lookup"], queryFn: async () => (await api.get<ListResponse<Subject>>("/subjects?offset=0&limit=200")).data });
 
-  const createYear = useMutation({ mutationFn: () => api.post("/academic-years", yearForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); showToast("Tahun ajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat tahun ajaran", "error") });
-  const updateYear = useMutation({ mutationFn: () => api.put(`/academic-years/${editingId}`, yearForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); setEditingId(null); showToast("Tahun ajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update tahun ajaran", "error") });
+  const schoolsQ = useQuery({
+    queryKey: ["schools-lookup"],
+    // Only super admin is allowed to hit /schools; others will get 403 so we short-circuit.
+    enabled: isSuperAdmin,
+    queryFn: async () => {
+      const res = await api.get<ListResponse<School>>("/schools?offset=0&limit=200");
+      return res.data;
+    },
+  });
+
+  // Helper: attach school_id when super admin has selected a school.
+  const withSchool = <T extends object>(payload: T): T & { school_id?: number } => {
+    if (isSuperAdmin && selectedSchoolId) {
+      return { ...(payload as T), school_id: selectedSchoolId as number };
+    }
+    return payload as T & { school_id?: number };
+  };
+
+  const createYear = useMutation({ mutationFn: () => api.post("/academic-years", withSchool(yearForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); showToast("Tahun ajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat tahun ajaran", "error") });
+  const updateYear = useMutation({ mutationFn: () => api.put(`/academic-years/${editingId}`, withSchool(yearForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); setEditingId(null); showToast("Tahun ajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update tahun ajaran", "error") });
   const deleteYear = useMutation({ mutationFn: (id: number) => api.delete(`/academic-years/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); showToast("Tahun ajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus tahun ajaran", "error") });
-  const createSemester = useMutation({ mutationFn: () => api.post("/semesters", semesterForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); showToast("Semester berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat semester", "error") });
-  const updateSemester = useMutation({ mutationFn: () => api.put(`/semesters/${editingId}`, semesterForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); setEditingId(null); showToast("Semester berhasil diupdate", "success"); }, onError: () => showToast("Gagal update semester", "error") });
+  const createSemester = useMutation({ mutationFn: () => api.post("/semesters", withSchool(semesterForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); showToast("Semester berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat semester", "error") });
+  const updateSemester = useMutation({ mutationFn: () => api.put(`/semesters/${editingId}`, withSchool(semesterForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); setEditingId(null); showToast("Semester berhasil diupdate", "success"); }, onError: () => showToast("Gagal update semester", "error") });
   const deleteSemester = useMutation({ mutationFn: (id: number) => api.delete(`/semesters/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); showToast("Semester berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus semester", "error") });
-  const createCurriculum = useMutation({ mutationFn: () => api.post("/curriculums", curriculumForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); showToast("Kurikulum berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat kurikulum", "error") });
-  const updateCurriculum = useMutation({ mutationFn: () => api.put(`/curriculums/${editingId}`, curriculumForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); setEditingId(null); showToast("Kurikulum berhasil diupdate", "success"); }, onError: () => showToast("Gagal update kurikulum", "error") });
+  const createCurriculum = useMutation({ mutationFn: () => api.post("/curriculums", withSchool(curriculumForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); showToast("Kurikulum berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat kurikulum", "error") });
+  const updateCurriculum = useMutation({ mutationFn: () => api.put(`/curriculums/${editingId}`, withSchool(curriculumForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); setEditingId(null); showToast("Kurikulum berhasil diupdate", "success"); }, onError: () => showToast("Gagal update kurikulum", "error") });
   const deleteCurriculum = useMutation({ mutationFn: (id: number) => api.delete(`/curriculums/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); showToast("Kurikulum berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus kurikulum", "error") });
-  const createTeaching = useMutation({ mutationFn: () => api.post("/teachings", teachingForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); showToast("Data pengajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat data pengajaran", "error") });
-  const updateTeaching = useMutation({ mutationFn: () => api.put(`/teachings/${editingId}`, teachingForm), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); setEditingId(null); showToast("Data pengajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update data pengajaran", "error") });
+  const createTeaching = useMutation({ mutationFn: () => api.post("/teachings", withSchool(teachingForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); showToast("Data pengajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat data pengajaran", "error") });
+  const updateTeaching = useMutation({ mutationFn: () => api.put(`/teachings/${editingId}`, withSchool(teachingForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); setEditingId(null); showToast("Data pengajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update data pengajaran", "error") });
   const deleteTeaching = useMutation({ mutationFn: (id: number) => api.delete(`/teachings/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); showToast("Data pengajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus data pengajaran", "error") });
 
   const openCreate = () => { setEditingId(null); setOpenModal(true); };
@@ -67,8 +93,27 @@ export default function AcademicsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Akademik</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">Akademik</h1>
+          {isSuperAdmin && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+              <span>Sekolah:</span>
+              <select
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                value={selectedSchoolId}
+                onChange={(e) => setSelectedSchoolId(e.target.value ? Number(e.target.value) : "")}
+              >
+                <option value="">Pilih sekolah</option>
+                {(schoolsQ.data?.data ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus className="size-4" /> Tambah Data</button>
       </div>
 
@@ -164,7 +209,11 @@ export default function AcademicsPage() {
           <form onSubmit={(e) => { e.preventDefault(); if (editingId) updateTeaching.mutate(); else createTeaching.mutate(); }} className="grid gap-3">
             <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.teacher_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, teacher_id: Number(e.target.value) }))} required>
               <option value="">Pilih guru</option>
-              {(teachersQ.data?.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.username}</option>)}
+              {(teachersQ.data?.data ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {teacherDisplayName(t)}
+                </option>
+              ))}
             </select>
             <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.class_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, class_id: Number(e.target.value) }))} required>
               <option value="">Pilih kelas</option>
