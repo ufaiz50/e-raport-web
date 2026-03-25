@@ -5,13 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type { ListResponse } from "@/types/api";
 import { DataTable } from "@/components/ui/data-table";
-
-type Teacher = {
-  id: number;
-  username: string;
-  role: string;
-  school_id?: number;
-};
+import type { Teacher } from "@/types/teacher";
+import { teacherDisplayName } from "@/types/teacher";
 
 const DEFAULT_LIMIT = 10;
 
@@ -51,8 +46,9 @@ export default function TeachersPage() {
           rowKey={(row) => row.id}
           columns={[
             { key: "no", header: "No", render: (_row, idx) => <span className="text-sm font-medium text-slate-700">{offset + idx + 1}</span> },
-            { key: "username", header: "Username", render: (t) => <span className="text-sm text-slate-800">{t.username}</span> },
-            { key: "role", header: "Role", render: (t) => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{t.role}</span> },
+            { key: "name", header: "Nama Lengkap", render: (t) => <span className="text-sm font-medium text-slate-900">{teacherDisplayName(t)}</span> },
+            { key: "username", header: "Username", render: (t) => <span className="text-sm text-slate-700">{t.username}</span> },
+            { key: "role", header: "Role", render: (t) => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{t.role ?? "-"}</span> },
             { key: "school", header: "Sekolah ID", render: (t) => <span className="text-sm text-slate-700">{t.school_id ?? "-"}</span> },
           ]}
         />

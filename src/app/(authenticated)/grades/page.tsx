@@ -6,6 +6,8 @@ import { api } from "@/lib/api/client";
 import type { ListResponse } from "@/types/api";
 import type { Student } from "@/types/student";
 import type { ClassItem } from "@/types/class";
+import type { Teacher } from "@/types/teacher";
+import { teacherDisplayName } from "@/types/teacher";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
@@ -42,7 +44,7 @@ type TeachingItem = {
 
 type SubjectItem = { id: number; title: string; author: string };
 
-type TeacherItem = { id: number; username: string };
+type TeacherItem = Teacher;
 
 type GradeItem = {
   id: number;
@@ -226,7 +228,8 @@ export default function GradesPage() {
     const subject = subjectsQuery.data?.data.find((b) => b.id === t.subject_id);
     const cls = classesQuery.data?.data.find((c) => c.id === t.class_id);
     const teacher = teachersQuery.data?.data.find((u) => u.id === t.teacher_id);
-    return `${subject?.title ?? `Mapel ${t.subject_id}`} • ${cls?.name ?? `Kelas ${t.class_id}`} • ${teacher?.username ?? `Guru ${t.teacher_id}`}`;
+    const teacherName = teacherDisplayName(teacher as Teacher) || `Guru ${t.teacher_id}`;
+    return `${subject?.title ?? `Mapel ${t.subject_id}`} • ${cls?.name ?? `Kelas ${t.class_id}`} • ${teacherName}`;
   };
 
   const enrollmentLabel = (enrollmentId?: number) => {
@@ -367,7 +370,11 @@ export default function GradesPage() {
           </select>
           <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={filterTeacherID} onChange={(e) => setFilterTeacherID(e.target.value ? Number(e.target.value) : "") }>
             <option value="">Semua Guru</option>
-            {(teachersQuery.data?.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.username}</option>)}
+            {(teachersQuery.data?.data ?? []).map((x) => (
+              <option key={x.id} value={x.id}>
+                {teacherDisplayName(x)}
+              </option>
+            ))}
           </select>
         </div>
 

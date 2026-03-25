@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type { ListResponse } from "@/types/api";
+import type { Teacher } from "@/types/teacher";
+import { teacherDisplayName } from "@/types/teacher";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
@@ -14,7 +16,6 @@ type AcademicYear = { id: number; year: string; is_active?: boolean };
 type Semester = { id: number; academic_year_id: number; name: string; order_no: number; is_active?: boolean };
 type Curriculum = { id: number; name: string; year?: string; description?: string };
 type Teaching = { id: number; teacher_id: number; class_id: number; subject_id: number; semester_id?: number };
-type Teacher = { id: number; username: string };
 type ClassItem = { id: number; name: string; level: string };
 type Subject = { id: number; title?: string; name?: string };
 
@@ -114,7 +115,14 @@ export default function AcademicsPage() {
       {tab === "teachings" && !!teachingsQ.data && (
         <DataTable rows={teachingsQ.data.data} total={teachingsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => r.id} columns={[
           { key: "no", header: "No", render: (_r, i) => i + 1 },
-          { key: "guru", header: "Guru", render: (r) => teachersQ.data?.data.find((t) => t.id === r.teacher_id)?.username ?? `ID ${r.teacher_id}` },
+          {
+            key: "guru",
+            header: "Guru",
+            render: (r) => {
+              const t = teachersQ.data?.data.find((t) => t.id === r.teacher_id);
+              return teacherDisplayName(t as Teacher) || `ID ${r.teacher_id}`;
+            },
+          },
           { key: "kelas", header: "Kelas", render: (r) => classesQ.data?.data.find((c) => c.id === r.class_id)?.name ?? `ID ${r.class_id}` },
           { key: "mapel", header: "Mata Pelajaran", render: (r) => (subjectsQ.data?.data.find((s) => s.id === r.subject_id)?.title || subjectsQ.data?.data.find((s) => s.id === r.subject_id)?.name || `ID ${r.subject_id}`) },
           { key: "semester", header: "Semester", render: (r) => semestersQ.data?.data.find((s) => s.id === r.semester_id)?.name ?? "-" },
