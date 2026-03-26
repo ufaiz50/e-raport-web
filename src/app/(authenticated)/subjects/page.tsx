@@ -18,6 +18,7 @@ type SchoolOption = { id: number; name: string };
 
 type SubjectItem = {
   id: number;
+  uuid?: string;
   name?: string;
   title: string;
   author: string;

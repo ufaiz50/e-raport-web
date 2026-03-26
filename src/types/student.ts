@@ -1,5 +1,6 @@
 export type Student = {
   id: number;
+  uuid?: string;
   first_name: string;
   last_name: string;
   email: string;

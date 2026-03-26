@@ -1,5 +1,6 @@
 export type ClassItem = {
   id: number;
+  uuid?: string;
   name: string;
   level: string;
   homeroom?: string;

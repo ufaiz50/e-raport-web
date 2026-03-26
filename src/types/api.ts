@@ -13,3 +13,8 @@ export type ListResponse<T> = {
 export type ApiErrorResponse = {
   error: string;
 };
+
+export type WithLegacyId = {
+  id: number;
+  uuid?: string;
+};

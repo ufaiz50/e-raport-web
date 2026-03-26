@@ -1,5 +1,6 @@
 export type Teacher = {
   id: number;
+  uuid?: string;
   username: string;
   // Prefer using one of these for display when available
   full_name?: string;

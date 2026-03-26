@@ -48,6 +48,7 @@ type TeacherItem = Teacher;
 
 type GradeItem = {
   id: number;
+  uuid?: string;
   semester_id?: number;
   teaching_id?: number;
   enrollment_id?: number;
@@ -65,6 +66,7 @@ type GradeItem = {
 
 type AttendanceItem = {
   id: number;
+  uuid?: string;
   enrollment_id?: number;
   student_id: number;
   semester: number;
@@ -76,6 +78,7 @@ type AttendanceItem = {
 
 type ReportNoteItem = {
   id: number;
+  uuid?: string;
   enrollment_id?: number;
   student_id: number;
   semester: number;
