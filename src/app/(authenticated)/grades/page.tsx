@@ -52,6 +52,8 @@ type GradeItem = {
   teaching_id?: number;
   enrollment_id?: number;
   student_id: number;
+  subject_id?: number;
+  subject_name?: string;
   book_id: number;
   semester: number;
   academic_year: string;
@@ -392,7 +394,15 @@ export default function GradesPage() {
               { key: "enroll", header: "Enrollment", render: (g) => <span className="text-sm text-slate-700">{enrollmentLabel(g.enrollment_id)}</span> },
               { key: "semester", header: "Semester", render: (g) => <span className="text-sm text-slate-700">{semesterLabel(g.semester_id)}</span> },
               { key: "teaching", header: "Pengajaran", render: (g) => <span className="text-sm text-slate-700">{teachingLabel(g.teaching_id)}</span> },
-              { key: "mapel", header: "Mata Pelajaran", render: (g) => <span className="text-sm text-slate-700">{subjectsQuery.data?.data.find((b) => b.id === g.book_id)?.title ?? `ID ${g.book_id}`}</span> },
+              {
+                key: "mapel",
+                header: "Mata Pelajaran",
+                render: (g) => (
+                  <span className="text-sm text-slate-700">
+                    {g.subject_name ?? subjectsQuery.data?.data.find((b) => b.id === (g.subject_id ?? g.book_id))?.title ?? `ID ${g.subject_id ?? g.book_id}`}
+                  </span>
+                ),
+              },
               { key: "akhir", header: "Nilai Akhir", render: (g) => <span className="font-semibold text-slate-900">{g.final_score.toFixed(1)}</span> },
               {
                 key: "aksi",
@@ -543,7 +553,7 @@ export default function GradesPage() {
             <DetailItem label="Enrollment" value={enrollmentLabel(detailGrade.enrollment_id)} />
             <DetailItem label="Semester" value={semesterLabel(detailGrade.semester_id)} />
             <DetailItem label="Pengajaran" value={teachingLabel(detailGrade.teaching_id)} />
-            <DetailItem label="Mata Pelajaran" value={subjectsQuery.data?.data.find((b) => b.id === detailGrade.book_id)?.title} />
+            <DetailItem label="Mata Pelajaran" value={detailGrade.subject_name ?? subjectsQuery.data?.data.find((b) => b.id === (detailGrade.subject_id ?? detailGrade.book_id))?.title} />
             <DetailItem label="Pengetahuan" value={String(detailGrade.knowledge_score)} />
             <DetailItem label="Keterampilan" value={String(detailGrade.skill_score)} />
             <DetailItem label="Nilai Akhir" value={String(detailGrade.final_score)} />

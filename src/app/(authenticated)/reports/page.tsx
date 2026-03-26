@@ -49,6 +49,8 @@ export default function ReportsPage() {
   const [semesterID, setSemesterID] = useState<number | "">("");
   const [classID, setClassID] = useState<number | "">("");
   const [studentID, setStudentID] = useState<number | "">("");
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false);
+  const [onlyNotFinalized, setOnlyNotFinalized] = useState(false);
 
   const yearsQ = useQuery({
     queryKey: ["academic-years-lookup"],
@@ -102,6 +104,8 @@ export default function ReportsPage() {
   const studentSummary = (reportSummaryQ.data?.students ?? []).filter((row) => {
     if (classID && row.class_id !== classID) return false;
     if (studentID && row.student_id !== studentID) return false;
+    if (onlyIncomplete && row.has_grades && row.has_attendance && row.has_report_note) return false;
+    if (onlyNotFinalized && row.finalized) return false;
     return true;
   });
 
@@ -328,6 +332,19 @@ export default function ReportsPage() {
           </>
         )}
       </div>
+
+      {!!reportSummaryQ.data && (
+        <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={onlyIncomplete} onChange={(e) => setOnlyIncomplete(e.target.checked)} />
+            Hanya tampilkan yang belum lengkap
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={onlyNotFinalized} onChange={(e) => setOnlyNotFinalized(e.target.checked)} />
+            Hanya tampilkan yang belum finalized
+          </label>
+        </div>
+      )}
 
       {!!reportSummaryQ.data && (
         <div className="grid gap-4 lg:grid-cols-2">
