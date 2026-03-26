@@ -278,7 +278,7 @@ export default function GradesPage() {
   });
 
   const gradeUpdate = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<GradePayload> }) => api.put(`/grades/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<GradePayload> }) => api.put(`/grades/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grades"] });
       setGradeModalOpen(false);
@@ -289,7 +289,7 @@ export default function GradesPage() {
   });
 
   const gradeDelete = useMutation({
-    mutationFn: (id: number) => api.delete(`/grades/${id}`),
+    mutationFn: (id: string) => api.delete(`/grades/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grades"] });
       showToast("Nilai berhasil dihapus", "success");
@@ -433,7 +433,7 @@ export default function GradesPage() {
                       }}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
                     ><Pencil className="size-3" /> Edit</button>
-                    <button onClick={() => gradeDelete.mutate(g.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"><Trash2 className="size-3" /> Hapus</button>
+                    <button onClick={() => gradeDelete.mutate(g.uuid ?? String(g.id))} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"><Trash2 className="size-3" /> Hapus</button>
                   </div>
                 ),
               },
@@ -482,7 +482,7 @@ export default function GradesPage() {
               showToast("Enrollment dan mata pelajaran wajib dipilih", "error");
               return;
             }
-            if (editingGrade) gradeUpdate.mutate({ id: editingGrade.id, payload: gradeForm });
+            if (editingGrade) gradeUpdate.mutate({ id: editingGrade.uuid ?? String(editingGrade.id), payload: gradeForm });
             else gradeCreate.mutate(gradeForm);
           }}
           className="grid grid-cols-1 gap-3 lg:grid-cols-2"
