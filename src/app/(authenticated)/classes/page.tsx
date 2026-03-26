@@ -75,7 +75,7 @@ export default function ClassesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ClassPayload }) => api.put(`/classes/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: ClassPayload }) => api.put(`/classes/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       setEditing(null);
@@ -87,7 +87,7 @@ export default function ClassesPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/classes/${id}`),
+    mutationFn: (id: string) => api.delete(`/classes/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       showToast("Kelas berhasil dihapus", "success");
@@ -104,7 +104,7 @@ export default function ClassesPage() {
     }
 
     if (editing) {
-      updateMutation.mutate({ id: editing.id, payload: form });
+      updateMutation.mutate({ id: editing.uuid ?? String(editing.id), payload: form });
     } else {
       createMutation.mutate(form);
     }
@@ -212,7 +212,7 @@ export default function ClassesPage() {
                     <Pencil className="size-3" /> Edit
                   </button>
                   <button
-                    onClick={() => deleteMutation.mutate(k.id)}
+                    onClick={() => deleteMutation.mutate(k.uuid ?? String(k.id))}
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                   >
                     <Trash2 className="size-3" /> Hapus

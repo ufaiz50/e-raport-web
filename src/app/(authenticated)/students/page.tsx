@@ -110,7 +110,7 @@ export default function StudentsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: StudentPayload }) => api.put(`/students/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: StudentPayload }) => api.put(`/students/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setEditing(null);
@@ -125,7 +125,7 @@ export default function StudentsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/students/${id}`),
+    mutationFn: (id: string) => api.delete(`/students/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       showToast("Siswa berhasil dihapus", "success");
@@ -147,7 +147,7 @@ export default function StudentsPage() {
     };
 
     if (editing) {
-      updateMutation.mutate({ id: editing.id, payload });
+      updateMutation.mutate({ id: editing.uuid ?? String(editing.id), payload });
     } else {
       createMutation.mutate(payload);
     }
@@ -247,7 +247,7 @@ export default function StudentsPage() {
                   <button onClick={() => onEdit(s)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
                     <Pencil className="size-3" /> Edit
                   </button>
-                  <button onClick={() => deleteMutation.mutate(s.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">
+                  <button onClick={() => deleteMutation.mutate(s.uuid ?? String(s.id))} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">
                     <Trash2 className="size-3" /> Hapus
                   </button>
                 </div>
