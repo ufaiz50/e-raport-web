@@ -152,6 +152,24 @@ export default function ReportsPage() {
     },
   });
 
+  const finalizeClassReadyMutation = useMutation({
+    mutationFn: async () => {
+      if (!canRunClassReport || !semesterNumber || !academicYearValue || !classID) return;
+      await api.post(`/reports/classes/${classID}/finalize-ready`, null, {
+        params: { semester: semesterNumber, academic_year: academicYearValue },
+      });
+    },
+    onSuccess: () => {
+      showToast("Berhasil finalisasi raport siap-cetak dalam kelas", "success");
+      reportSummaryQ.refetch();
+    },
+    onError: (e: unknown) => {
+      const err = e as { response?: { data?: { error?: string } } };
+      const msg = err.response?.data?.error ?? "Gagal finalisasi raport per kelas";
+      showToast(msg, "error");
+    },
+  });
+
   const finalizeMutation = useMutation({
     mutationFn: async () => {
       if (!canRunStudentReport || !semesterNumber || !academicYearValue || !studentID) return;
@@ -290,14 +308,24 @@ export default function ReportsPage() {
         )}
 
         {mode === "class" && (
-          <button
-            type="button"
-            disabled={!canRunClassReport || classReportMutation.isPending}
-            onClick={() => classReportMutation.mutate()}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            {classReportMutation.isPending ? "Membuka..." : "Buka Raport Satu Kelas (PDF)"}
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={!canRunClassReport || classReportMutation.isPending}
+              onClick={() => classReportMutation.mutate()}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {classReportMutation.isPending ? "Membuka..." : "Buka Raport Satu Kelas (PDF)"}
+            </button>
+            <button
+              type="button"
+              disabled={!canRunClassReport || finalizeClassReadyMutation.isPending}
+              onClick={() => finalizeClassReadyMutation.mutate()}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500 px-4 py-2 text-sm font-medium text-emerald-700 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
+            >
+              {finalizeClassReadyMutation.isPending ? "Memproses..." : "Finalisasi Semua yang Siap"}
+            </button>
+          </>
         )}
       </div>
 

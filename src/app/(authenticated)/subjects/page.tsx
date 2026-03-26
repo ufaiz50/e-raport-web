@@ -18,6 +18,7 @@ type SchoolOption = { id: number; name: string };
 
 type SubjectItem = {
   id: number;
+  name?: string;
   title: string;
   author: string;
   school_id?: number;
@@ -25,6 +26,7 @@ type SubjectItem = {
 };
 
 type SubjectPayload = {
+  name?: string;
   title: string;
   author: string;
   school_id?: number;
@@ -121,7 +123,7 @@ export default function BooksPage() {
 
   const onEdit = (b: SubjectItem) => {
     setEditing(b);
-    setForm({ title: b.title, author: b.author, school_id: b.school_id, teacher_id: b.teacher_id });
+    setForm({ title: b.name || b.title, name: b.name || b.title, author: b.author, school_id: b.school_id, teacher_id: b.teacher_id });
     setOpenModal(true);
   };
 
@@ -162,7 +164,7 @@ export default function BooksPage() {
               header: "Mata Pelajaran",
               render: (b) => (
                 <>
-                  <div className="font-medium text-slate-900">{b.title}</div>
+                  <div className="font-medium text-slate-900">{b.name || b.title}</div>
                   <div className="text-xs text-slate-500">Pengampu: {b.author || "-"}</div>
                 </>
               ),
@@ -212,7 +214,7 @@ export default function BooksPage() {
           )}
 
           <Field label="Nama Mata Pelajaran" required icon={BookOpenText}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Contoh: Matematika" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
+            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Contoh: Matematika" value={form.name ?? form.title} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value, title: e.target.value }))} required />
           </Field>
           <Field label="Pengampu" required icon={UserRound}>
             <select
@@ -250,7 +252,7 @@ export default function BooksPage() {
       <Modal open={!!detailBook} title="Detail Mata Pelajaran" onClose={() => setDetailBook(null)}>
         {detailBook && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <DetailItem label="Nama Mata Pelajaran" value={detailBook.title} />
+            <DetailItem label="Nama Mata Pelajaran" value={detailBook.name || detailBook.title} />
             <DetailItem label="Pengampu" value={detailBook.author} />
             {isSuperAdmin && (
               <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => s.id === detailBook.school_id)?.name ?? (detailBook.school_id ? `ID ${detailBook.school_id}` : "-")} />

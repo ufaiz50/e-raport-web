@@ -30,6 +30,8 @@ type DashboardSummary = {
     grades: number;
     attendances: number;
     report_notes: number;
+    subjects_without_teacher: number;
+    incomplete_students: number;
   };
   semester_trends: Array<{
     academic_year: string;
@@ -77,6 +79,8 @@ export default function DashboardPage() {
     grades: 0,
     attendances: 0,
     report_notes: 0,
+    subjects_without_teacher: 0,
+    incomplete_students: 0,
   };
 
   const recommendation = useMemo(() => summaryQuery.data?.recommendations ?? [], [summaryQuery.data?.recommendations]);
@@ -95,12 +99,14 @@ export default function DashboardPage() {
         <p className="text-sm text-slate-500">Memuat statistik dashboard...</p>
       ) : (
         <>
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-7">
             <StatCard title="Siswa" value={totals.students} icon={<Users className="size-5" />} color="sky" />
             <StatCard title="Kelas" value={totals.classes} icon={<Building2 className="size-5" />} color="indigo" />
             <StatCard title="Nilai" value={totals.grades} icon={<BookOpenCheck className="size-5" />} color="emerald" />
             <StatCard title="Absensi" value={totals.attendances} icon={<ClipboardList className="size-5" />} color="amber" />
             <StatCard title="Catatan Rapor" value={totals.report_notes} icon={<FileText className="size-5" />} color="rose" />
+            <StatCard title="Mapel Tanpa Guru" value={totals.subjects_without_teacher} icon={<AlertTriangle className="size-5" />} color="amber" />
+            <StatCard title="Siswa Belum Lengkap" value={totals.incomplete_students} icon={<AlertTriangle className="size-5" />} color="rose" />
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
