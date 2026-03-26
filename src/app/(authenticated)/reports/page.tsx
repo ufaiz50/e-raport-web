@@ -10,6 +10,36 @@ import { useToast } from "@/components/ui/toast-provider";
 
 type AcademicYearItem = { id: number; year: string };
 type SemesterItem = { id: number; academic_year_id: number; name: string; order_no: number };
+type ReportSummary = {
+  academic_year: string;
+  semester: number;
+  totals: {
+    students: number;
+    ready_students: number;
+    finalized_students: number;
+    classes: number;
+  };
+  classes: Array<{
+    class_id: number;
+    class_name: string;
+    level: string;
+    total_students: number;
+    ready_students: number;
+    finalized_students: number;
+    completeness_pct: number;
+  }>;
+  students: Array<{
+    student_id: number;
+    student_name: string;
+    class_id: number;
+    class_name: string;
+    has_grades: boolean;
+    has_attendance: boolean;
+    has_report_note: boolean;
+    finalized: boolean;
+    completeness_pct: number;
+  }>;
+};
 
 export default function ReportsPage() {
   const { showToast } = useToast();
@@ -56,6 +86,24 @@ export default function ReportsPage() {
   });
 
   const selectedClass = filteredClasses.find((c) => c.id === classID);
+
+  const reportSummaryQ = useQuery({
+    queryKey: ["reports-summary", academicYearValue, semesterNumber],
+    enabled: !!academicYearValue && !!semesterNumber,
+    queryFn: async () => {
+      const res = await api.get<{ data: ReportSummary }>("/reports/summary", {
+        params: { academic_year: academicYearValue, semester: semesterNumber },
+      });
+      return res.data.data;
+    },
+  });
+
+  const classSummary = (reportSummaryQ.data?.classes ?? []).filter((row) => !classID || row.class_id === classID);
+  const studentSummary = (reportSummaryQ.data?.students ?? []).filter((row) => {
+    if (classID && row.class_id !== classID) return false;
+    if (studentID && row.student_id !== studentID) return false;
+    return true;
+  });
 
   const canRunStudentReport =
     mode === "student" && !!academicYearValue && !!semesterNumber && !!classID && !!studentID;
@@ -252,6 +300,76 @@ export default function ReportsPage() {
           </button>
         )}
       </div>
+
+      {!!reportSummaryQ.data && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">Ringkasan Progress Raport</h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard label="Total Siswa" value={reportSummaryQ.data.totals.students} />
+              <SummaryCard label="Siap Finalisasi" value={reportSummaryQ.data.totals.ready_students} />
+              <SummaryCard label="Sudah Final" value={reportSummaryQ.data.totals.finalized_students} />
+              <SummaryCard label="Total Kelas" value={reportSummaryQ.data.totals.classes} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">Kelas dengan Progress Terendah</h2>
+            <div className="space-y-3">
+              {classSummary.slice(0, 5).map((row) => (
+                <div key={row.class_id} className="rounded-xl bg-slate-50 p-3">
+                  <div className="flex items-center justify-between text-sm font-medium text-slate-800">
+                    <span>{row.class_name} ({row.level})</span>
+                    <span>{row.completeness_pct}%</span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">
+                    Siap: {row.ready_students}/{row.total_students} • Final: {row.finalized_students}/{row.total_students}
+                  </div>
+                </div>
+              ))}
+              {!classSummary.length && <p className="text-sm text-slate-500">Belum ada ringkasan kelas untuk term ini.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!!reportSummaryQ.data && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">Checklist Siswa</h2>
+          <div className="space-y-2">
+            {studentSummary.map((row) => (
+              <div key={row.student_id} className="rounded-xl border border-slate-200 px-3 py-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="font-medium text-slate-900">{row.student_name}</div>
+                    <div className="text-xs text-slate-500">{row.class_name} • Progress {row.completeness_pct}%</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <Badge ok={row.has_grades} label="Nilai" />
+                    <Badge ok={row.has_attendance} label="Absensi" />
+                    <Badge ok={row.has_report_note} label="Catatan" />
+                    <Badge ok={row.finalized} label="Final" />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!studentSummary.length && <p className="text-sm text-slate-500">Belum ada siswa untuk filter yang dipilih.</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function SummaryCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl bg-slate-50 px-3 py-3">
+      <div className="text-xs font-medium text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-bold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function Badge({ ok, label }: { ok: boolean; label: string }) {
+  return <span className={`rounded-full px-2.5 py-1 font-medium ${ok ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{label}</span>;
 }
