@@ -8,6 +8,8 @@ import { getEntityId } from "@/types/api";
 import type { Teacher } from "@/types/teacher";
 import { teacherDisplayName } from "@/types/teacher";
 import type { School } from "@/types/school";
+import type { SubjectItem as Subject } from "@/types/subject";
+import { subjectLabel } from "@/types/subject";
 import { auth } from "@/lib/auth";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
@@ -20,7 +22,6 @@ type Semester = { id?: EntityId; academic_year_id: EntityId; name: string; order
 type Curriculum = { id?: EntityId; name: string; year?: string; description?: string; school_id?: EntityId };
 type Teaching = { id?: EntityId; teacher_id: EntityId; class_id: EntityId; subject_id: EntityId; semester_id?: EntityId; school_id?: EntityId };
 type ClassItem = { id?: EntityId; name: string; level: string; school_id?: EntityId };
-type Subject = { id?: EntityId; title?: string; name?: string; school_id?: EntityId };
 
 export default function AcademicsPage() {
   const queryClient = useQueryClient();
@@ -149,7 +150,7 @@ export default function AcademicsPage() {
           { key: "no", header: "No", render: (_r, i) => i + 1 },
           { key: "guru", header: "Guru", render: (r) => teacherDisplayName((teachersQ.data?.data.find((t) => getEntityId(t) === r.teacher_id) as Teacher) ?? ({ username: r.teacher_id } as Teacher)) },
           { key: "kelas", header: "Kelas", render: (r) => classesQ.data?.data.find((c) => getEntityId(c) === r.class_id)?.name ?? `ID ${r.class_id}` },
-          { key: "mapel", header: "Mata Pelajaran", render: (r) => (subjectsQ.data?.data.find((s) => getEntityId(s) === r.subject_id)?.title || subjectsQ.data?.data.find((s) => getEntityId(s) === r.subject_id)?.name || `ID ${r.subject_id}`) },
+          { key: "mapel", header: "Mata Pelajaran", render: (r) => subjectLabel(subjectsQ.data?.data.find((s) => getEntityId(s) === r.subject_id)) !== "-" ? subjectLabel(subjectsQ.data?.data.find((s) => getEntityId(s) === r.subject_id)) : `ID ${r.subject_id}` },
           { key: "semester", header: "Semester", render: (r) => semestersQ.data?.data.find((s) => getEntityId(s) === r.semester_id)?.name ?? "-" },
           { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(getEntityId(r)); setTeachingForm({ teacher_id: r.teacher_id, class_id: r.class_id, subject_id: r.subject_id, semester_id: r.semester_id }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "teaching", id: getEntityId(r), label: `Pengajaran #${getEntityId(r)}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
@@ -197,7 +198,7 @@ export default function AcademicsPage() {
             </select>
             <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.subject_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, subject_id: e.target.value }))} required>
               <option value="">Pilih mata pelajaran</option>
-              {(subjectsQ.data?.data ?? []).map((s) => <option key={getEntityId(s)} value={getEntityId(s)}>{s.title || s.name}</option>)}
+              {(subjectsQ.data?.data ?? []).map((s) => <option key={getEntityId(s)} value={getEntityId(s)}>{subjectLabel(s)}</option>)}
             </select>
             <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.semester_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, semester_id: e.target.value || undefined }))} required>
               <option value="">Pilih semester</option>

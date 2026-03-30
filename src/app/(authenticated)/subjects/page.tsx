@@ -8,6 +8,8 @@ import type { EntityId, ListResponse } from "@/types/api";
 import { getEntityId } from "@/types/api";
 import type { Teacher } from "@/types/teacher";
 import { teacherDisplayName } from "@/types/teacher";
+import type { SubjectItem } from "@/types/subject";
+import { subjectLabel } from "@/types/subject";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
@@ -16,16 +18,6 @@ import { BookOpenText, Eye, Pencil, Plus, School, Trash2, UserRound } from "luci
 const DEFAULT_LIMIT = 10;
 
 type SchoolOption = { id?: EntityId; uuid?: EntityId; name: string };
-
-type SubjectItem = {
-  id?: EntityId;
-  uuid?: EntityId;
-  name?: string;
-  title: string;
-  author: string;
-  school_id?: EntityId;
-  teacher_id?: EntityId;
-};
 
 type SubjectPayload = {
   name?: string;
@@ -125,7 +117,7 @@ export default function BooksPage() {
 
   const onEdit = (b: SubjectItem) => {
     setEditing(b);
-    setForm({ title: b.name || b.title, name: b.name || b.title, author: b.author, school_id: b.school_id, teacher_id: b.teacher_id });
+    setForm({ title: subjectLabel(b), name: subjectLabel(b), author: b.author, school_id: b.school_id, teacher_id: b.teacher_id });
     setOpenModal(true);
   };
 
@@ -166,7 +158,7 @@ export default function BooksPage() {
               header: "Mata Pelajaran",
               render: (b) => (
                 <>
-                  <div className="font-medium text-slate-900">{b.name || b.title}</div>
+                  <div className="font-medium text-slate-900">{subjectLabel(b)}</div>
                   <div className="text-xs text-slate-500">Pengampu: {b.author || "-"}</div>
                 </>
               ),
@@ -254,7 +246,7 @@ export default function BooksPage() {
       <Modal open={!!detailBook} title="Detail Mata Pelajaran" onClose={() => setDetailBook(null)}>
         {detailBook && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <DetailItem label="Nama Mata Pelajaran" value={detailBook.name || detailBook.title} />
+            <DetailItem label="Nama Mata Pelajaran" value={subjectLabel(detailBook)} />
             <DetailItem label="Pengampu" value={detailBook.author} />
             {isSuperAdmin && (
               <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => getEntityId(s) === detailBook.school_id)?.name ?? (detailBook.school_id || "-")} />
