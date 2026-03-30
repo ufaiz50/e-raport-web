@@ -117,7 +117,7 @@ export default function BooksPage() {
 
   const onEdit = (b: SubjectItem) => {
     setEditing(b);
-    setForm({ title: subjectLabel(b), name: subjectLabel(b), author: b.author, school_id: b.school_id, teacher_id: b.teacher_id });
+    setForm({ title: subjectLabel(b), name: subjectLabel(b), author: b.author ?? "", school_id: b.school_id, teacher_id: b.teacher_id });
     setOpenModal(true);
   };
 

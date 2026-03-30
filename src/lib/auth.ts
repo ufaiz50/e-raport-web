@@ -34,6 +34,9 @@ export const auth = {
     if (typeof window === "undefined") return;
     localStorage.removeItem(TOKEN_KEY);
   },
+  clearToken() {
+    this.clear();
+  },
   getClaims(): AuthClaims | null {
     const token = this.getToken();
     if (!token) return null;
@@ -49,5 +52,8 @@ export const auth = {
     const claims = this.getClaims();
     if (!claims?.exp) return !!this.getToken();
     return claims.exp * 1000 > Date.now();
+  },
+  isLoggedIn(): boolean {
+    return this.isAuthenticated();
   },
 };
