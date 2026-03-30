@@ -1,6 +1,8 @@
+import type { EntityId } from "@/types/api";
+
 export type School = {
-  id: number;
-  uuid?: string;
+  id?: EntityId;
+  uuid?: EntityId;
   name: string;
   address?: string;
   npsn?: string;

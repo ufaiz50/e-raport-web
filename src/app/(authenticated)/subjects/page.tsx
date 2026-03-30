@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
-import type { ListResponse } from "@/types/api";
+import type { EntityId, ListResponse } from "@/types/api";
+import { getEntityId } from "@/types/api";
 import type { Teacher } from "@/types/teacher";
 import { teacherDisplayName } from "@/types/teacher";
 import { DataTable } from "@/components/ui/data-table";
@@ -14,24 +15,24 @@ import { BookOpenText, Eye, Pencil, Plus, School, Trash2, UserRound } from "luci
 
 const DEFAULT_LIMIT = 10;
 
-type SchoolOption = { id: number; name: string };
+type SchoolOption = { id?: EntityId; uuid?: EntityId; name: string };
 
 type SubjectItem = {
-  id: number;
-  uuid?: string;
+  id?: EntityId;
+  uuid?: EntityId;
   name?: string;
   title: string;
   author: string;
-  school_id?: number;
-  teacher_id?: number;
+  school_id?: EntityId;
+  teacher_id?: EntityId;
 };
 
 type SubjectPayload = {
   name?: string;
   title: string;
   author: string;
-  school_id?: number;
-  teacher_id?: number;
+  school_id?: EntityId;
+  teacher_id?: EntityId;
 };
 
 const emptyForm: SubjectPayload = {
@@ -90,7 +91,7 @@ export default function BooksPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: SubjectPayload }) => api.put(`/subjects/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: EntityId; payload: SubjectPayload }) => api.put(`/subjects/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
       setEditing(null);
@@ -102,7 +103,7 @@ export default function BooksPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/subjects/${id}`),
+    mutationFn: (id: EntityId) => api.delete(`/subjects/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
       showToast("Mata pelajaran berhasil dihapus", "success");
@@ -118,7 +119,7 @@ export default function BooksPage() {
       return;
     }
 
-    if (editing) updateMutation.mutate({ id: editing.uuid ?? String(editing.id), payload: form });
+    if (editing) updateMutation.mutate({ id: getEntityId(editing), payload: form });
     else createMutation.mutate(form);
   };
 
@@ -157,7 +158,7 @@ export default function BooksPage() {
             setLimit(next);
             setOffset(0);
           }}
-          rowKey={(row) => row.id}
+          rowKey={(row) => getEntityId(row)}
           columns={[
             { key: "no", header: "No", render: (_r, idx) => <span className="text-sm font-medium text-slate-700">{offset + idx + 1}</span> },
             {
@@ -175,8 +176,8 @@ export default function BooksPage() {
               header: "Sekolah",
               render: (b) => {
                 if (!isSuperAdmin) return <span className="text-sm text-slate-700">-</span>;
-                const school = schoolsQuery.data?.data.find((s) => s.id === b.school_id);
-                return <span className="text-sm text-slate-700">{school?.name ?? (b.school_id ? `ID ${b.school_id}` : "-")}</span>;
+                const school = schoolsQuery.data?.data.find((s) => getEntityId(s) === b.school_id);
+                return <span className="text-sm text-slate-700 break-all">{school?.name ?? (b.school_id || "-")}</span>;
               },
             },
             {
@@ -191,7 +192,7 @@ export default function BooksPage() {
                   <button onClick={() => onEdit(b)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
                     <Pencil className="size-3" /> Edit
                   </button>
-                  <button onClick={() => deleteMutation.mutate(b.uuid ?? String(b.id))} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">
+                  <button onClick={() => deleteMutation.mutate(getEntityId(b))} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">
                     <Trash2 className="size-3" /> Hapus
                   </button>
                 </div>
@@ -205,10 +206,10 @@ export default function BooksPage() {
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {isSuperAdmin && (
             <Field label="Sekolah" required icon={School}>
-              <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.school_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_id: e.target.value ? Number(e.target.value) : undefined }))} required>
+              <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.school_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, school_id: e.target.value || undefined }))} required>
                 <option value="">Pilih sekolah</option>
                 {(schoolsQuery.data?.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={getEntityId(s)} value={getEntityId(s)}>{s.name}</option>
                 ))}
               </select>
             </Field>
@@ -222,8 +223,8 @@ export default function BooksPage() {
               className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               value={form.teacher_id ?? ""}
               onChange={(e) => {
-                const teacherId = e.target.value ? Number(e.target.value) : undefined;
-                const t = (teachersQuery.data?.data ?? []).find((x) => x.id === teacherId);
+                const teacherId = e.target.value || undefined;
+                const t = (teachersQuery.data?.data ?? []).find((x) => getEntityId(x) === teacherId);
                 setForm((p) => ({
                   ...p,
                   teacher_id: teacherId,
@@ -234,7 +235,7 @@ export default function BooksPage() {
             >
               <option value="">Pilih guru pengampu</option>
               {(teachersQuery.data?.data ?? []).map((t) => (
-                <option key={t.id} value={t.id}>
+                <option key={getEntityId(t)} value={getEntityId(t)}>
                   {teacherDisplayName(t)}
                 </option>
               ))}
@@ -256,7 +257,7 @@ export default function BooksPage() {
             <DetailItem label="Nama Mata Pelajaran" value={detailBook.name || detailBook.title} />
             <DetailItem label="Pengampu" value={detailBook.author} />
             {isSuperAdmin && (
-              <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => s.id === detailBook.school_id)?.name ?? (detailBook.school_id ? `ID ${detailBook.school_id}` : "-")} />
+              <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => getEntityId(s) === detailBook.school_id)?.name ?? (detailBook.school_id || "-")} />
             )}
           </div>
         )}

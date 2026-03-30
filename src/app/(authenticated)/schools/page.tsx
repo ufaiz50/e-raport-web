@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
-import type { ListResponse } from "@/types/api";
+import type { EntityId, ListResponse } from "@/types/api";
+import { getEntityId } from "@/types/api";
 import { Modal } from "@/components/ui/modal";
 import { DataTable } from "@/components/ui/data-table";
 import { useToast } from "@/components/ui/toast-provider";
@@ -14,7 +15,8 @@ import { BookText, Eye, Hash, ImageIcon, MapPin, Pencil, Plus, School, Signature
 const DEFAULT_LIMIT = 10;
 
 type School = {
-  id: number;
+  id?: EntityId;
+  uuid?: EntityId;
   name: string;
   code: string;
   address?: string;
@@ -25,7 +27,7 @@ type School = {
   school_stamp?: string;
 };
 
-type SchoolPayload = Omit<School, "id">;
+type SchoolPayload = Omit<School, "id" | "uuid">;
 
 const emptyForm: SchoolPayload = {
   name: "",
@@ -76,7 +78,7 @@ export default function SchoolsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: SchoolPayload }) => api.put(`/schools/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: EntityId; payload: SchoolPayload }) => api.put(`/schools/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schools"] });
       setEditing(null);
@@ -88,7 +90,7 @@ export default function SchoolsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/schools/${id}`),
+    mutationFn: (id: EntityId) => api.delete(`/schools/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schools"] });
       showToast("School berhasil dihapus", "success");
@@ -99,7 +101,7 @@ export default function SchoolsPage() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editing) {
-      updateMutation.mutate({ id: editing.id, payload: form });
+      updateMutation.mutate({ id: getEntityId(editing), payload: form });
     } else {
       createMutation.mutate(form);
     }
@@ -152,7 +154,7 @@ export default function SchoolsPage() {
             setLimit(next);
             setOffset(0);
           }}
-          rowKey={(row) => row.id}
+          rowKey={(row) => getEntityId(row)}
           columns={[
             {
               key: "no",
@@ -203,7 +205,7 @@ export default function SchoolsPage() {
                     <Pencil className="size-3" /> Edit
                   </button>
                   <button
-                    onClick={() => deleteMutation.mutate(s.id)}
+                    onClick={() => deleteMutation.mutate(getEntityId(s))}
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                   >
                     <Trash2 className="size-3" /> Hapus

@@ -1,6 +1,8 @@
+import type { EntityId } from "@/types/api";
+
 export type Student = {
-  id: number;
-  uuid?: string;
+  id?: EntityId;
+  uuid?: EntityId;
   first_name: string;
   last_name: string;
   email: string;
@@ -15,6 +17,6 @@ export type Student = {
   parent_name?: string;
   parent_phone?: string;
   status?: string;
-  class_id?: number;
-  school_id?: number;
+  class_id?: EntityId;
+  school_id?: EntityId;
 };

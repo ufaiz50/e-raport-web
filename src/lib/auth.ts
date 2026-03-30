@@ -1,41 +1,53 @@
-import { TOKEN_KEY } from "@/lib/constants";
+const TOKEN_KEY = "token";
 
-type AuthClaims = {
+export type AuthClaims = {
   username?: string;
   role?: string;
-  school_id?: number;
+  school_id?: string;
   exp?: number;
+  iss?: string;
 };
 
-function decodeJwtPayload(token: string): AuthClaims | null {
+function decodePayload(token: string): AuthClaims | null {
   try {
-    const [, payload] = token.split(".");
+    const payload = token.split(".")[1];
     if (!payload) return null;
-
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const decoded = atob(padded);
-    return JSON.parse(decoded) as AuthClaims;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    const json = typeof window !== "undefined" ? window.atob(padded) : Buffer.from(padded, "base64").toString("utf8");
+    return JSON.parse(json) as AuthClaims;
   } catch {
     return null;
   }
 }
 
 export const auth = {
-  getToken: () => (typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY)),
-  setToken: (token: string) => localStorage.setItem(TOKEN_KEY, token),
-  clearToken: () => {
+  getToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEY);
+  },
+  setToken(token: string) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TOKEN_KEY, token);
+  },
+  clear() {
+    if (typeof window === "undefined") return;
     localStorage.removeItem(TOKEN_KEY);
   },
-  isLoggedIn: () => !!(typeof window !== "undefined" && localStorage.getItem(TOKEN_KEY)),
-  getClaims: (): AuthClaims | null => {
-    if (typeof window === "undefined") return null;
-    const token = localStorage.getItem(TOKEN_KEY);
+  getClaims(): AuthClaims | null {
+    const token = this.getToken();
     if (!token) return null;
-    return decodeJwtPayload(token);
+    return decodePayload(token);
   },
-  getRole: (): string | null => {
-    const claims = auth.getClaims();
-    return claims?.role ?? null;
+  getRole(): string | null {
+    return this.getClaims()?.role ?? null;
+  },
+  getSchoolId(): string | null {
+    return this.getClaims()?.school_id ?? null;
+  },
+  isAuthenticated(): boolean {
+    const claims = this.getClaims();
+    if (!claims?.exp) return !!this.getToken();
+    return claims.exp * 1000 > Date.now();
   },
 };

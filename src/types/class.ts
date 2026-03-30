@@ -1,9 +1,11 @@
+import type { EntityId } from "@/types/api";
+
 export type ClassItem = {
-  id: number;
-  uuid?: string;
+  id?: EntityId;
+  uuid?: EntityId;
   name: string;
   level: string;
   homeroom?: string;
   academic_year: string;
-  school_id?: number;
+  school_id?: EntityId;
 };

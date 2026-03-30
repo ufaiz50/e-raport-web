@@ -1,3 +1,5 @@
+export type EntityId = string;
+
 export type PaginationMeta = {
   offset: number;
   limit: number;
@@ -14,7 +16,11 @@ export type ApiErrorResponse = {
   error: string;
 };
 
-export type WithLegacyId = {
-  id: number;
-  uuid?: string;
+export type WithIdentifier = {
+  id?: EntityId;
+  uuid?: EntityId;
 };
+
+export function getEntityId(entity: WithIdentifier): EntityId {
+  return entity.uuid ?? entity.id ?? "";
+}

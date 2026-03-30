@@ -1,6 +1,8 @@
+import type { EntityId } from "@/types/api";
+
 export type Teacher = {
-  id: number;
-  uuid?: string;
+  id?: EntityId;
+  uuid?: EntityId;
   username: string;
   // Prefer using one of these for display when available
   full_name?: string;
@@ -9,7 +11,7 @@ export type Teacher = {
   last_name?: string;
   email?: string;
   role?: string;
-  school_id?: number;
+  school_id?: EntityId;
 };
 
 export function teacherDisplayName(t: Teacher): string {

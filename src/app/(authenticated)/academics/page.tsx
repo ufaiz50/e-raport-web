@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import type { ListResponse } from "@/types/api";
+import type { EntityId, ListResponse } from "@/types/api";
+import { getEntityId } from "@/types/api";
 import type { Teacher } from "@/types/teacher";
 import { teacherDisplayName } from "@/types/teacher";
 import type { School } from "@/types/school";
@@ -14,28 +15,27 @@ import { useToast } from "@/components/ui/toast-provider";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import axios from "axios";
 
-type AcademicYear = { id: number; year: string; is_active?: boolean };
-type Semester = { id: number; academic_year_id: number; name: string; order_no: number; is_active?: boolean };
-type Curriculum = { id: number; name: string; year?: string; description?: string };
-type Teaching = { id: number; teacher_id: number; class_id: number; subject_id: number; semester_id?: number };
-type ClassItem = { id: number; name: string; level: string };
-type Subject = { id: number; title?: string; name?: string };
+type AcademicYear = { id?: EntityId; year: string; is_active?: boolean; school_id?: EntityId };
+type Semester = { id?: EntityId; academic_year_id: EntityId; name: string; order_no: number; is_active?: boolean; school_id?: EntityId };
+type Curriculum = { id?: EntityId; name: string; year?: string; description?: string; school_id?: EntityId };
+type Teaching = { id?: EntityId; teacher_id: EntityId; class_id: EntityId; subject_id: EntityId; semester_id?: EntityId; school_id?: EntityId };
+type ClassItem = { id?: EntityId; name: string; level: string; school_id?: EntityId };
+type Subject = { id?: EntityId; title?: string; name?: string; school_id?: EntityId };
 
 export default function AcademicsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [tab, setTab] = useState<"years" | "semesters" | "curriculums" | "teachings">("years");
   const [openModal, setOpenModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ kind: "year" | "semester" | "curriculum" | "teaching"; id: number; label: string } | null>(null);
+  const [editingId, setEditingId] = useState<EntityId | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: "year" | "semester" | "curriculum" | "teaching"; id: EntityId; label: string } | null>(null);
 
   const [yearForm, setYearForm] = useState({ year: "", is_active: false });
-  const [semesterForm, setSemesterForm] = useState({ academic_year_id: 0, name: "", order_no: 1, is_active: false });
+  const [semesterForm, setSemesterForm] = useState<{ academic_year_id: EntityId; name: string; order_no: number; is_active: boolean }>({ academic_year_id: "", name: "", order_no: 1, is_active: false });
   const [curriculumForm, setCurriculumForm] = useState({ name: "", year: "", description: "" });
-  const [teachingForm, setTeachingForm] = useState({ teacher_id: 0, class_id: 0, subject_id: 0, semester_id: 0 });
+  const [teachingForm, setTeachingForm] = useState<{ teacher_id: EntityId; class_id: EntityId; subject_id: EntityId; semester_id?: EntityId }>({ teacher_id: "", class_id: "", subject_id: "", semester_id: undefined });
 
-  // Super admin can work across multiple schools; others are bound to their school from token.
-  const [selectedSchoolId, setSelectedSchoolId] = useState<number | "">("");
+  const [selectedSchoolId, setSelectedSchoolId] = useState<EntityId | "">("");
 
   const role = useMemo(() => auth.getRole(), []);
   const isSuperAdmin = role === "super_admin";
@@ -51,7 +51,6 @@ export default function AcademicsPage() {
 
   const schoolsQ = useQuery({
     queryKey: ["schools-lookup"],
-    // Only super admin is allowed to hit /schools; others will get 403 so we short-circuit.
     enabled: isSuperAdmin,
     queryFn: async () => {
       const res = await api.get<ListResponse<School>>("/schools?offset=0&limit=200");
@@ -59,26 +58,25 @@ export default function AcademicsPage() {
     },
   });
 
-  // Helper: attach school_id when super admin has selected a school.
-  const withSchool = <T extends object>(payload: T): T & { school_id?: number } => {
+  const withSchool = <T extends object>(payload: T): T & { school_id?: EntityId } => {
     if (isSuperAdmin && selectedSchoolId) {
-      return { ...(payload as T), school_id: selectedSchoolId as number };
+      return { ...(payload as T), school_id: selectedSchoolId };
     }
-    return payload as T & { school_id?: number };
+    return payload as T & { school_id?: EntityId };
   };
 
   const createYear = useMutation({ mutationFn: () => api.post("/academic-years", withSchool(yearForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); showToast("Tahun ajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat tahun ajaran", "error") });
   const updateYear = useMutation({ mutationFn: () => api.put(`/academic-years/${editingId}`, withSchool(yearForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); setOpenModal(false); setEditingId(null); showToast("Tahun ajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update tahun ajaran", "error") });
-  const deleteYear = useMutation({ mutationFn: (id: number) => api.delete(`/academic-years/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); showToast("Tahun ajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus tahun ajaran", "error") });
+  const deleteYear = useMutation({ mutationFn: (id: EntityId) => api.delete(`/academic-years/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["academic-years"] }); showToast("Tahun ajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus tahun ajaran", "error") });
   const createSemester = useMutation({ mutationFn: () => api.post("/semesters", withSchool(semesterForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); showToast("Semester berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat semester", "error") });
   const updateSemester = useMutation({ mutationFn: () => api.put(`/semesters/${editingId}`, withSchool(semesterForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); setOpenModal(false); setEditingId(null); showToast("Semester berhasil diupdate", "success"); }, onError: () => showToast("Gagal update semester", "error") });
-  const deleteSemester = useMutation({ mutationFn: (id: number) => api.delete(`/semesters/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); showToast("Semester berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus semester", "error") });
+  const deleteSemester = useMutation({ mutationFn: (id: EntityId) => api.delete(`/semesters/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["semesters"] }); showToast("Semester berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus semester", "error") });
   const createCurriculum = useMutation({ mutationFn: () => api.post("/curriculums", withSchool(curriculumForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); showToast("Kurikulum berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat kurikulum", "error") });
   const updateCurriculum = useMutation({ mutationFn: () => api.put(`/curriculums/${editingId}`, withSchool(curriculumForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); setOpenModal(false); setEditingId(null); showToast("Kurikulum berhasil diupdate", "success"); }, onError: () => showToast("Gagal update kurikulum", "error") });
-  const deleteCurriculum = useMutation({ mutationFn: (id: number) => api.delete(`/curriculums/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); showToast("Kurikulum berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus kurikulum", "error") });
+  const deleteCurriculum = useMutation({ mutationFn: (id: EntityId) => api.delete(`/curriculums/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["curriculums"] }); showToast("Kurikulum berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus kurikulum", "error") });
   const createTeaching = useMutation({ mutationFn: () => api.post("/teachings", withSchool(teachingForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); showToast("Data pengajaran berhasil dibuat", "success"); }, onError: () => showToast("Gagal membuat data pengajaran", "error") });
   const updateTeaching = useMutation({ mutationFn: () => api.put(`/teachings/${editingId}`, withSchool(teachingForm)), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); setOpenModal(false); setEditingId(null); showToast("Data pengajaran berhasil diupdate", "success"); }, onError: () => showToast("Gagal update data pengajaran", "error") });
-  const deleteTeaching = useMutation({ mutationFn: (id: number) => api.delete(`/teachings/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); showToast("Data pengajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus data pengajaran", "error") });
+  const deleteTeaching = useMutation({ mutationFn: (id: EntityId) => api.delete(`/teachings/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["teachings"] }); showToast("Data pengajaran berhasil dihapus", "success"); }, onError: (e) => showToast((axios.isAxiosError(e) ? (e.response?.data as { error?: string } | undefined)?.error : undefined) || "Gagal hapus data pengajaran", "error") });
 
   const openCreate = () => { setEditingId(null); setOpenModal(true); };
 
@@ -99,16 +97,10 @@ export default function AcademicsPage() {
           {isSuperAdmin && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
               <span>Sekolah:</span>
-              <select
-                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-                value={selectedSchoolId}
-                onChange={(e) => setSelectedSchoolId(e.target.value ? Number(e.target.value) : "")}
-              >
+              <select className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm" value={selectedSchoolId} onChange={(e) => setSelectedSchoolId(e.target.value || "")}>
                 <option value="">Pilih sekolah</option>
                 {(schoolsQ.data?.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
+                  <option key={getEntityId(s)} value={getEntityId(s)}>{s.name}</option>
                 ))}
               </select>
             </div>
@@ -118,60 +110,48 @@ export default function AcademicsPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {[
-          ["years", "Tahun Ajaran"],
-          ["semesters", "Semester"],
-          ["curriculums", "Kurikulum"],
-          ["teachings", "Pengajaran"],
-        ].map(([k, label]) => (
+        {[["years", "Tahun Ajaran"], ["semesters", "Semester"], ["curriculums", "Kurikulum"], ["teachings", "Pengajaran"]].map(([k, label]) => (
           <button key={k} onClick={() => setTab(k as typeof tab)} className={`rounded-lg px-3 py-1.5 text-sm ${tab === k ? "bg-indigo-600 text-white" : "border border-slate-200 text-slate-700"}`}>{label}</button>
         ))}
       </div>
 
       {tab === "years" && !!yearsQ.data && (
-        <DataTable rows={yearsQ.data.data} total={yearsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => r.id} columns={[
+        <DataTable rows={yearsQ.data.data} total={yearsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => getEntityId(r)} columns={[
           { key: "no", header: "No", render: (_r, i) => i + 1 },
           { key: "year", header: "Tahun", render: (r) => r.year },
           { key: "active", header: "Aktif", render: (r) => (r.is_active ? "Ya" : "Tidak") },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setYearForm({ year: r.year, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "year", id: r.id, label: `Tahun Ajaran ${r.year}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(getEntityId(r)); setYearForm({ year: r.year, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "year", id: getEntityId(r), label: `Tahun Ajaran ${r.year}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
       {tab === "semesters" && !!semestersQ.data && (
-        <DataTable rows={semestersQ.data.data} total={semestersQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => r.id} columns={[
+        <DataTable rows={semestersQ.data.data} total={semestersQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => getEntityId(r)} columns={[
           { key: "no", header: "No", render: (_r, i) => i + 1 },
-          { key: "year", header: "Tahun Ajaran", render: (r) => yearsQ.data?.data.find((y) => y.id === r.academic_year_id)?.year ?? "-" },
+          { key: "year", header: "Tahun Ajaran", render: (r) => yearsQ.data?.data.find((y) => getEntityId(y) === r.academic_year_id)?.year ?? "-" },
           { key: "name", header: "Nama Semester", render: (r) => r.name },
           { key: "order", header: "Urutan", render: (r) => r.order_no },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setSemesterForm({ academic_year_id: r.academic_year_id, name: r.name, order_no: r.order_no, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "semester", id: r.id, label: `Semester ${r.name}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(getEntityId(r)); setSemesterForm({ academic_year_id: r.academic_year_id, name: r.name, order_no: r.order_no, is_active: !!r.is_active }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "semester", id: getEntityId(r), label: `Semester ${r.name}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
       {tab === "curriculums" && !!curriculumsQ.data && (
-        <DataTable rows={curriculumsQ.data.data} total={curriculumsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => r.id} columns={[
+        <DataTable rows={curriculumsQ.data.data} total={curriculumsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => getEntityId(r)} columns={[
           { key: "no", header: "No", render: (_r, i) => i + 1 },
           { key: "name", header: "Nama Kurikulum", render: (r) => r.name },
           { key: "year", header: "Tahun", render: (r) => r.year || "-" },
           { key: "desc", header: "Deskripsi", render: (r) => r.description || "-" },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setCurriculumForm({ name: r.name, year: r.year || "", description: r.description || "" }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "curriculum", id: r.id, label: `Kurikulum ${r.name}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(getEntityId(r)); setCurriculumForm({ name: r.name, year: r.year || "", description: r.description || "" }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "curriculum", id: getEntityId(r), label: `Kurikulum ${r.name}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
       {tab === "teachings" && !!teachingsQ.data && (
-        <DataTable rows={teachingsQ.data.data} total={teachingsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => r.id} columns={[
+        <DataTable rows={teachingsQ.data.data} total={teachingsQ.data.meta.total} offset={0} limit={200} onOffsetChange={() => {}} onLimitChange={() => {}} rowKey={(r) => getEntityId(r)} columns={[
           { key: "no", header: "No", render: (_r, i) => i + 1 },
-          {
-            key: "guru",
-            header: "Guru",
-            render: (r) => {
-              const t = teachersQ.data?.data.find((t) => t.id === r.teacher_id);
-              return teacherDisplayName(t as Teacher) || `ID ${r.teacher_id}`;
-            },
-          },
-          { key: "kelas", header: "Kelas", render: (r) => classesQ.data?.data.find((c) => c.id === r.class_id)?.name ?? `ID ${r.class_id}` },
-          { key: "mapel", header: "Mata Pelajaran", render: (r) => (subjectsQ.data?.data.find((s) => s.id === r.subject_id)?.title || subjectsQ.data?.data.find((s) => s.id === r.subject_id)?.name || `ID ${r.subject_id}`) },
-          { key: "semester", header: "Semester", render: (r) => semestersQ.data?.data.find((s) => s.id === r.semester_id)?.name ?? "-" },
-          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(r.id); setTeachingForm({ teacher_id: r.teacher_id, class_id: r.class_id, subject_id: r.subject_id, semester_id: r.semester_id || 0 }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "teaching", id: r.id, label: `Pengajaran #${r.id}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
+          { key: "guru", header: "Guru", render: (r) => teacherDisplayName((teachersQ.data?.data.find((t) => getEntityId(t) === r.teacher_id) as Teacher) ?? ({ username: r.teacher_id } as Teacher)) },
+          { key: "kelas", header: "Kelas", render: (r) => classesQ.data?.data.find((c) => getEntityId(c) === r.class_id)?.name ?? `ID ${r.class_id}` },
+          { key: "mapel", header: "Mata Pelajaran", render: (r) => (subjectsQ.data?.data.find((s) => getEntityId(s) === r.subject_id)?.title || subjectsQ.data?.data.find((s) => getEntityId(s) === r.subject_id)?.name || `ID ${r.subject_id}`) },
+          { key: "semester", header: "Semester", render: (r) => semestersQ.data?.data.find((s) => getEntityId(s) === r.semester_id)?.name ?? "-" },
+          { key: "aksi", header: "Aksi", className: "text-right", render: (r) => <div className="flex justify-end gap-2"><button onClick={() => { setEditingId(getEntityId(r)); setTeachingForm({ teacher_id: r.teacher_id, class_id: r.class_id, subject_id: r.subject_id, semester_id: r.semester_id }); setOpenModal(true); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"><Pencil className="size-3" /> Edit</button><button onClick={() => setDeleteTarget({ kind: "teaching", id: getEntityId(r), label: `Pengajaran #${getEntityId(r)}` })} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700"><Trash2 className="size-3" /> Hapus</button></div> },
         ]} />
       )}
 
@@ -186,9 +166,9 @@ export default function AcademicsPage() {
 
         {tab === "semesters" && (
           <form onSubmit={(e) => { e.preventDefault(); if (editingId) updateSemester.mutate(); else createSemester.mutate(); }} className="grid gap-3">
-            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={semesterForm.academic_year_id || ""} onChange={(e) => setSemesterForm((p) => ({ ...p, academic_year_id: Number(e.target.value) }))} required>
+            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={semesterForm.academic_year_id || ""} onChange={(e) => setSemesterForm((p) => ({ ...p, academic_year_id: e.target.value }))} required>
               <option value="">Pilih tahun ajaran</option>
-              {(yearsQ.data?.data ?? []).map((y) => <option key={y.id} value={y.id}>{y.year}</option>)}
+              {(yearsQ.data?.data ?? []).map((y) => <option key={getEntityId(y)} value={getEntityId(y)}>{y.year}</option>)}
             </select>
             <input className="rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Nama semester (Ganjil/Genap)" value={semesterForm.name} onChange={(e) => setSemesterForm((p) => ({ ...p, name: e.target.value }))} required />
             <input type="number" min={1} max={2} className="rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Urutan (1/2)" value={semesterForm.order_no} onChange={(e) => setSemesterForm((p) => ({ ...p, order_no: Number(e.target.value) }))} required />
@@ -207,25 +187,21 @@ export default function AcademicsPage() {
 
         {tab === "teachings" && (
           <form onSubmit={(e) => { e.preventDefault(); if (editingId) updateTeaching.mutate(); else createTeaching.mutate(); }} className="grid gap-3">
-            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.teacher_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, teacher_id: Number(e.target.value) }))} required>
+            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.teacher_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, teacher_id: e.target.value }))} required>
               <option value="">Pilih guru</option>
-              {(teachersQ.data?.data ?? []).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {teacherDisplayName(t)}
-                </option>
-              ))}
+              {(teachersQ.data?.data ?? []).map((t) => <option key={getEntityId(t)} value={getEntityId(t)}>{teacherDisplayName(t)}</option>)}
             </select>
-            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.class_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, class_id: Number(e.target.value) }))} required>
+            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.class_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, class_id: e.target.value }))} required>
               <option value="">Pilih kelas</option>
-              {(classesQ.data?.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.level})</option>)}
+              {(classesQ.data?.data ?? []).map((c) => <option key={getEntityId(c)} value={getEntityId(c)}>{c.name} ({c.level})</option>)}
             </select>
-            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.subject_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, subject_id: Number(e.target.value) }))} required>
+            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.subject_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, subject_id: e.target.value }))} required>
               <option value="">Pilih mata pelajaran</option>
-              {(subjectsQ.data?.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.title || s.name}</option>)}
+              {(subjectsQ.data?.data ?? []).map((s) => <option key={getEntityId(s)} value={getEntityId(s)}>{s.title || s.name}</option>)}
             </select>
-            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.semester_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, semester_id: Number(e.target.value) }))} required>
+            <select className="rounded-xl border border-slate-200 px-3 py-2.5" value={teachingForm.semester_id || ""} onChange={(e) => setTeachingForm((p) => ({ ...p, semester_id: e.target.value || undefined }))} required>
               <option value="">Pilih semester</option>
-              {(semestersQ.data?.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {(semestersQ.data?.data ?? []).map((s) => <option key={getEntityId(s)} value={getEntityId(s)}>{s.name}</option>)}
             </select>
             <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm text-white">Simpan</button>
           </form>

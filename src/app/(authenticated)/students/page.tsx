@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
-import type { ListResponse } from "@/types/api";
+import type { EntityId, ListResponse } from "@/types/api";
+import { getEntityId } from "@/types/api";
 import type { Student } from "@/types/student";
 import type { ClassItem } from "@/types/class";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,7 +16,7 @@ import { Eye, Layers, Mail, Pencil, Plus, School, Trash2, UserRound } from "luci
 
 const DEFAULT_LIMIT = 10;
 
-type SchoolOption = { id: number; name: string };
+type SchoolOption = { id?: EntityId; uuid?: EntityId; name: string };
 
 type StudentPayload = {
   first_name: string;
@@ -32,8 +33,8 @@ type StudentPayload = {
   parent_name?: string;
   parent_phone?: string;
   status?: string;
-  class_id: number | undefined;
-  school_id?: number;
+  class_id: EntityId | undefined;
+  school_id?: EntityId;
 };
 
 const emptyForm: StudentPayload = {
@@ -110,7 +111,7 @@ export default function StudentsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: StudentPayload }) => api.put(`/students/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: EntityId; payload: StudentPayload }) => api.put(`/students/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setEditing(null);
@@ -125,7 +126,7 @@ export default function StudentsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/students/${id}`),
+    mutationFn: (id: EntityId) => api.delete(`/students/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       showToast("Siswa berhasil dihapus", "success");
@@ -147,7 +148,7 @@ export default function StudentsPage() {
     };
 
     if (editing) {
-      updateMutation.mutate({ id: editing.uuid ?? String(editing.id), payload });
+      updateMutation.mutate({ id: getEntityId(editing), payload });
     } else {
       createMutation.mutate(payload);
     }
@@ -205,7 +206,7 @@ export default function StudentsPage() {
             setLimit(next);
             setOffset(0);
           }}
-          rowKey={(row) => row.id}
+          rowKey={(row) => getEntityId(row)}
           columns={[
             {
               key: "no",
@@ -231,7 +232,7 @@ export default function StudentsPage() {
               key: "kelas",
               header: "Kelas",
               render: (s) => {
-                const kelas = classesQuery.data?.data.find((k) => k.id === s.class_id);
+                const kelas = classesQuery.data?.data.find((k) => getEntityId(k) === s.class_id);
                 return <span className="text-sm text-slate-700">{kelas ? `${kelas.name} (${kelas.level})` : "-"}</span>;
               },
             },
@@ -247,7 +248,7 @@ export default function StudentsPage() {
                   <button onClick={() => onEdit(s)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
                     <Pencil className="size-3" /> Edit
                   </button>
-                  <button onClick={() => deleteMutation.mutate(s.uuid ?? String(s.id))} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">
+                  <button onClick={() => deleteMutation.mutate(getEntityId(s))} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100">
                     <Trash2 className="size-3" /> Hapus
                   </button>
                 </div>
@@ -264,12 +265,12 @@ export default function StudentsPage() {
             <select
               className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               value={form.school_id ?? ""}
-              onChange={(e) => setForm((p) => ({ ...p, school_id: e.target.value ? Number(e.target.value) : undefined, class_id: undefined }))}
+              onChange={(e) => setForm((p) => ({ ...p, school_id: e.target.value || undefined, class_id: undefined }))}
               required
             >
                 <option value="">Pilih sekolah</option>
                 {(schoolsQuery.data?.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={getEntityId(s)} value={getEntityId(s)}>{s.name}</option>
                 ))}
               </select>
             </Field>
@@ -326,10 +327,10 @@ export default function StudentsPage() {
             </select>
           </Field>
           <Field label="Kelas" required icon={School}>
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.class_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value ? Number(e.target.value) : undefined }))} required>
+            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.class_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value || undefined }))} required>
               <option value="">Pilih kelas</option>
               {visibleClasses.map((k) => (
-                <option key={k.id} value={k.id}>{k.name} ({k.level})</option>
+                <option key={getEntityId(k)} value={getEntityId(k)}>{k.name} ({k.level})</option>
               ))}
             </select>
           </Field>
@@ -357,9 +358,9 @@ export default function StudentsPage() {
             <DetailItem label="Agama" value={(detailStudent as Student & { religion?: string }).religion} />
             <DetailItem label="Nama Orang Tua" value={(detailStudent as Student & { parent_name?: string }).parent_name} />
             <DetailItem label="Telepon Orang Tua" value={(detailStudent as Student & { parent_phone?: string }).parent_phone} />
-            <DetailItem label="Kelas" value={classesQuery.data?.data.find((k) => k.id === detailStudent.class_id)?.name} />
+            <DetailItem label="Kelas" value={classesQuery.data?.data.find((k) => getEntityId(k) === detailStudent.class_id)?.name} />
             {isSuperAdmin && (
-              <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => s.id === detailStudent.school_id)?.name} />
+              <DetailItem label="Sekolah" value={schoolsQuery.data?.data.find((s) => getEntityId(s) === detailStudent.school_id)?.name} />
             )}
           </div>
         )}

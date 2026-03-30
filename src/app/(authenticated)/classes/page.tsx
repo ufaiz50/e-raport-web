@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { auth } from "@/lib/auth";
-import type { ListResponse } from "@/types/api";
+import type { EntityId, ListResponse } from "@/types/api";
+import { getEntityId } from "@/types/api";
 import type { ClassItem } from "@/types/class";
 import { Modal } from "@/components/ui/modal";
 import { DataTable } from "@/components/ui/data-table";
@@ -18,11 +19,12 @@ type ClassPayload = {
   level: string;
   homeroom?: string;
   academic_year: string;
-  school_id?: number;
+  school_id?: EntityId;
 };
 
 type SchoolOption = {
-  id: number;
+  id?: EntityId;
+  uuid?: EntityId;
   name: string;
 };
 
@@ -75,7 +77,7 @@ export default function ClassesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: ClassPayload }) => api.put(`/classes/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: EntityId; payload: ClassPayload }) => api.put(`/classes/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       setEditing(null);
@@ -87,7 +89,7 @@ export default function ClassesPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/classes/${id}`),
+    mutationFn: (id: EntityId) => api.delete(`/classes/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       showToast("Kelas berhasil dihapus", "success");
@@ -104,7 +106,7 @@ export default function ClassesPage() {
     }
 
     if (editing) {
-      updateMutation.mutate({ id: editing.uuid ?? String(editing.id), payload: form });
+      updateMutation.mutate({ id: getEntityId(editing), payload: form });
     } else {
       createMutation.mutate(form);
     }
@@ -154,7 +156,7 @@ export default function ClassesPage() {
             setLimit(next);
             setOffset(0);
           }}
-          rowKey={(row) => row.id}
+          rowKey={(row) => getEntityId(row)}
           columns={[
             {
               key: "no",
@@ -182,8 +184,8 @@ export default function ClassesPage() {
                     key: "sekolah",
                     header: "Sekolah",
                     render: (k: ClassItem) => {
-                      const schoolName = schoolsQuery.data?.data.find((s) => s.id === k.school_id)?.name;
-                      return <span className="text-sm text-slate-700">{schoolName ?? `ID ${k.school_id ?? "-"}`}</span>;
+                      const schoolName = schoolsQuery.data?.data.find((s) => getEntityId(s) === k.school_id)?.name;
+                      return <span className="text-sm text-slate-700">{schoolName ?? (k.school_id ?? "-")}</span>;
                     },
                   },
                 ]
@@ -212,7 +214,7 @@ export default function ClassesPage() {
                     <Pencil className="size-3" /> Edit
                   </button>
                   <button
-                    onClick={() => deleteMutation.mutate(k.uuid ?? String(k.id))}
+                    onClick={() => deleteMutation.mutate(getEntityId(k))}
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                   >
                     <Trash2 className="size-3" /> Hapus
@@ -234,14 +236,14 @@ export default function ClassesPage() {
                 onChange={(e) =>
                   setForm((p) => ({
                     ...p,
-                    school_id: e.target.value ? Number(e.target.value) : undefined,
+                    school_id: e.target.value || undefined,
                   }))
                 }
                 required
               >
                 <option value="">Pilih sekolah</option>
                 {(schoolsQuery.data?.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <option key={getEntityId(s)} value={getEntityId(s)}>
                     {s.name}
                   </option>
                 ))}
@@ -280,7 +282,7 @@ export default function ClassesPage() {
             {isSuperAdmin && (
               <DetailItem
                 label="Sekolah"
-                value={schoolsQuery.data?.data.find((s) => s.id === detailClass.school_id)?.name ?? (detailClass.school_id ? `ID ${detailClass.school_id}` : "-")}
+                value={schoolsQuery.data?.data.find((s) => getEntityId(s) === detailClass.school_id)?.name ?? (detailClass.school_id || "-")}
               />
             )}
           </div>
