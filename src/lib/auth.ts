@@ -1,4 +1,4 @@
-const TOKEN_KEY = "token";
+import { TOKEN_KEY } from "@/lib/constants";
 
 export type AuthClaims = {
   username?: string;
