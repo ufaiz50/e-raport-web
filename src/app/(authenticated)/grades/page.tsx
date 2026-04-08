@@ -194,7 +194,7 @@ export default function GradesPage() {
     if (!e) return "-";
     const student = studentsQuery.data?.data.find((s) => getEntityId(s) === e.student_id);
     const cls = classesQuery.data?.data.find((c) => getEntityId(c) === e.class_id);
-    const studentName = `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim();
+    const studentName = student?.nama || student?.nama_panggilan || student?.email || "";
     return `${studentName || `Siswa ${e.student_id}`} • ${cls?.name ?? `Kelas ${e.class_id}`} • ${e.academic_year} S${e.semester}`;
   };
 

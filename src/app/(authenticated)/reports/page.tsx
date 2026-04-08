@@ -180,7 +180,7 @@ export default function ReportsPage() {
           <select className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm" value={studentID} onChange={(e) => setStudentID(e.target.value || "")} disabled={!classID}>
             <option value="">Pilih Siswa</option>
             {filteredStudents.map((s) => {
-              const name = `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() || s.email || `Siswa #${getEntityId(s)}`;
+              const name = s.nama || s.nama_panggilan || s.email || `Siswa #${getEntityId(s)}`;
               return <option key={getEntityId(s)} value={getEntityId(s)}>{name} {selectedClass ? `• ${selectedClass.name}` : ""}</option>;
             })}
           </select>
