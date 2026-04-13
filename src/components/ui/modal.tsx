@@ -34,7 +34,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button className="absolute inset-0 bg-slate-900/55 backdrop-blur-[2px]" onClick={onClose} aria-label="Close modal" />
 
-      <div className="relative w-full max-w-3xl rounded-2xl border border-white/70 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 md:p-6">
+      <div className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-white/70 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 md:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button

@@ -12,7 +12,7 @@ import type { ClassItem } from "@/types/class";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast-provider";
-import { Eye, Layers, Mail, Pencil, Plus, School, Trash2, UserRound } from "lucide-react";
+import { ChevronDown, Eye, Layers, Mail, Pencil, Plus, School, Trash2, UserRound } from "lucide-react";
 
 const DEFAULT_LIMIT = 10;
 
@@ -86,6 +86,14 @@ const emptyForm: StudentPayload = {
   school_id: undefined,
 };
 
+const defaultExpandedSections = {
+  identity: true,
+  family: false,
+  guardian: false,
+  academic: false,
+  notes: false,
+};
+
 export default function StudentsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -98,6 +106,7 @@ export default function StudentsPage() {
   const [editing, setEditing] = useState<Student | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [detailStudent, setDetailStudent] = useState<Student | null>(null);
+  const [expandedSections, setExpandedSections] = useState(defaultExpandedSections);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["students", offset, limit],
@@ -131,6 +140,7 @@ export default function StudentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setForm(emptyForm);
+      setExpandedSections(defaultExpandedSections);
       setOpenModal(false);
       showToast("Siswa berhasil dibuat", "success");
     },
@@ -146,6 +156,7 @@ export default function StudentsPage() {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setEditing(null);
       setForm(emptyForm);
+      setExpandedSections(defaultExpandedSections);
       setOpenModal(false);
       showToast("Siswa berhasil diupdate", "success");
     },
@@ -222,13 +233,25 @@ export default function StudentsPage() {
       class_id: s.class_id,
       school_id: s.school_id,
     });
+    setExpandedSections({
+      identity: true,
+      family: true,
+      guardian: !!(s.nama_wali || s.no_hp_wali || s.alamat_wali_jalan),
+      academic: true,
+      notes: !!s.catatan_guru,
+    });
     setOpenModal(true);
   };
 
   const openCreateModal = () => {
     setEditing(null);
     setForm(emptyForm);
+    setExpandedSections(defaultExpandedSections);
     setOpenModal(true);
+  };
+
+  const toggleSection = (key: keyof typeof defaultExpandedSections) => {
+    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -312,130 +335,161 @@ export default function StudentsPage() {
       )}
 
       <Modal open={openModal} title={editing ? "Ubah Siswa" : "Tambah Siswa"} onClose={() => setOpenModal(false)}>
-        <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {isSuperAdmin && (
-            <Field label="Sekolah" required icon={School}>
-              <select
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                value={form.school_id ?? ""}
-                onChange={(e) => setForm((p) => ({ ...p, school_id: e.target.value || undefined, class_id: undefined }))}
-                required
-              >
-                <option value="">Pilih sekolah</option>
-                {(schoolsQuery.data?.data ?? []).map((s) => (
-                  <option key={getEntityId(s)} value={getEntityId(s)}>{s.name}</option>
-                ))}
-              </select>
-            </Field>
-          )}
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Form siswa lebih ringkas</h3>
+                <p className="text-xs text-slate-600">Data penting ditampilkan lebih dulu. Bagian lain dibuka hanya saat diperlukan.</p>
+              </div>
+              <div className="text-xs text-slate-500">{editing ? "Mode edit" : "Mode tambah"}</div>
+            </div>
+          </div>
 
-          <Field label="Nama" required icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama lengkap" value={form.nama} onChange={(e) => setForm((p) => ({ ...p, nama: e.target.value }))} required />
-          </Field>
-          <Field label="Nama Panggilan" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama panggilan" value={form.nama_panggilan ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_panggilan: e.target.value }))} />
-          </Field>
-          <Field label="Email" icon={Mail}>
-            <input type="email" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="email@contoh.com" value={form.email ?? ""} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} />
-          </Field>
-          <Field label="NIS" icon={Layers}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NIS" value={form.nis ?? ""} onChange={(e) => setForm((p) => ({ ...p, nis: e.target.value }))} />
-          </Field>
-          <Field label="NISN" icon={Layers}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NISN" value={form.nisn ?? ""} onChange={(e) => setForm((p) => ({ ...p, nisn: e.target.value }))} />
-          </Field>
-          <Field label="Jenis Kelamin" icon={UserRound}>
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.jenis_kelamin ?? ""} onChange={(e) => setForm((p) => ({ ...p, jenis_kelamin: e.target.value }))}>
-              <option value="">Pilih</option>
-              <option value="male">Laki-laki</option>
-              <option value="female">Perempuan</option>
-            </select>
-          </Field>
-          <Field label="Tempat Lahir" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Tempat lahir" value={form.tempat_lahir ?? ""} onChange={(e) => setForm((p) => ({ ...p, tempat_lahir: e.target.value }))} />
-          </Field>
-          <Field label="Tanggal Lahir" icon={UserRound}>
-            <input type="date" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.tanggal_lahir ?? ""} onChange={(e) => setForm((p) => ({ ...p, tanggal_lahir: e.target.value }))} />
-          </Field>
-          <Field label="Agama" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Agama" value={form.agama ?? ""} onChange={(e) => setForm((p) => ({ ...p, agama: e.target.value }))} />
-          </Field>
-          <Field label="Anak Ke" icon={UserRound}>
-            <input type="number" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Anak ke" value={form.anak_ke ?? ""} onChange={(e) => setForm((p) => ({ ...p, anak_ke: e.target.value ? Number(e.target.value) : undefined }))} />
-          </Field>
-          <Field label="Nama Ayah" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama ayah" value={form.nama_ayah ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_ayah: e.target.value }))} />
-          </Field>
-          <Field label="Pekerjaan Ayah" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Pekerjaan ayah" value={form.pekerjaan_ayah ?? ""} onChange={(e) => setForm((p) => ({ ...p, pekerjaan_ayah: e.target.value }))} />
-          </Field>
-          <Field label="Nama Ibu" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama ibu" value={form.nama_ibu ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_ibu: e.target.value }))} />
-          </Field>
-          <Field label="Pekerjaan Ibu" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Pekerjaan ibu" value={form.pekerjaan_ibu ?? ""} onChange={(e) => setForm((p) => ({ ...p, pekerjaan_ibu: e.target.value }))} />
-          </Field>
-          <Field label="No HP Orang Tua" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="No HP orang tua" value={form.no_hp_orangtua ?? ""} onChange={(e) => setForm((p) => ({ ...p, no_hp_orangtua: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Orang Tua - Jalan" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Jalan" value={form.alamat_orangtua_jalan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_jalan: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Orang Tua - Kecamatan" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kecamatan" value={form.alamat_orangtua_kecamatan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_kecamatan: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Orang Tua - Kabupaten" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kabupaten" value={form.alamat_orangtua_kabupaten ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_kabupaten: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Orang Tua - Provinsi" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Provinsi" value={form.alamat_orangtua_provinsi ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_provinsi: e.target.value }))} />
-          </Field>
-          <Field label="Nama Wali" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama wali" value={form.nama_wali ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_wali: e.target.value }))} />
-          </Field>
-          <Field label="Pekerjaan Wali" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Pekerjaan wali" value={form.pekerjaan_wali ?? ""} onChange={(e) => setForm((p) => ({ ...p, pekerjaan_wali: e.target.value }))} />
-          </Field>
-          <Field label="No HP Wali" icon={UserRound}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="No HP wali" value={form.no_hp_wali ?? ""} onChange={(e) => setForm((p) => ({ ...p, no_hp_wali: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Wali - Jalan" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Jalan" value={form.alamat_wali_jalan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_jalan: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Wali - Kecamatan" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kecamatan" value={form.alamat_wali_kecamatan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_kecamatan: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Wali - Kabupaten" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kabupaten" value={form.alamat_wali_kabupaten ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_kabupaten: e.target.value }))} />
-          </Field>
-          <Field label="Alamat Wali - Provinsi" icon={School}>
-            <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Provinsi" value={form.alamat_wali_provinsi ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_provinsi: e.target.value }))} />
-          </Field>
-          <Field label="Tanggal Diterima" icon={School}>
-            <input type="date" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.tanggal_diterima ?? ""} onChange={(e) => setForm((p) => ({ ...p, tanggal_diterima: e.target.value }))} />
-          </Field>
-          <Field label="Status" icon={UserRound}>
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.status ?? "active"} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-              <option value="active">Aktif</option>
-              <option value="graduated">Lulus</option>
-              <option value="transferred">Pindah</option>
-            </select>
-          </Field>
-          <Field label="Kelas" required icon={School}>
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.class_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value || undefined }))} required>
-              <option value="">Pilih kelas</option>
-              {visibleClasses.map((k) => (
-                <option key={getEntityId(k)} value={getEntityId(k)}>{k.name} ({k.level})</option>
-              ))}
-            </select>
-          </Field>
-          <div className="lg:col-span-2">
+          <SectionCard title="Informasi Utama" description="Identitas dan data kontak dasar siswa." open={expandedSections.identity} onToggle={() => toggleSection("identity")} defaultOpen>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {isSuperAdmin && (
+                <Field label="Sekolah" required icon={School}>
+                  <select
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    value={form.school_id ?? ""}
+                    onChange={(e) => setForm((p) => ({ ...p, school_id: e.target.value || undefined, class_id: undefined }))}
+                    required
+                  >
+                    <option value="">Pilih sekolah</option>
+                    {(schoolsQuery.data?.data ?? []).map((s) => (
+                      <option key={getEntityId(s)} value={getEntityId(s)}>{s.name}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+              <Field label="Nama" required icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama lengkap" value={form.nama} onChange={(e) => setForm((p) => ({ ...p, nama: e.target.value }))} required />
+              </Field>
+              <Field label="Nama Panggilan" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama panggilan" value={form.nama_panggilan ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_panggilan: e.target.value }))} />
+              </Field>
+              <Field label="Email" icon={Mail}>
+                <input type="email" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="email@contoh.com" value={form.email ?? ""} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} />
+              </Field>
+              <Field label="NIS" icon={Layers}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NIS" value={form.nis ?? ""} onChange={(e) => setForm((p) => ({ ...p, nis: e.target.value }))} />
+              </Field>
+              <Field label="NISN" icon={Layers}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="NISN" value={form.nisn ?? ""} onChange={(e) => setForm((p) => ({ ...p, nisn: e.target.value }))} />
+              </Field>
+              <Field label="Jenis Kelamin" icon={UserRound}>
+                <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.jenis_kelamin ?? ""} onChange={(e) => setForm((p) => ({ ...p, jenis_kelamin: e.target.value }))}>
+                  <option value="">Pilih</option>
+                  <option value="male">Laki-laki</option>
+                  <option value="female">Perempuan</option>
+                </select>
+              </Field>
+              <Field label="Tempat Lahir" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Tempat lahir" value={form.tempat_lahir ?? ""} onChange={(e) => setForm((p) => ({ ...p, tempat_lahir: e.target.value }))} />
+              </Field>
+              <Field label="Tanggal Lahir" icon={UserRound}>
+                <input type="date" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.tanggal_lahir ?? ""} onChange={(e) => setForm((p) => ({ ...p, tanggal_lahir: e.target.value }))} />
+              </Field>
+              <Field label="Agama" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Agama" value={form.agama ?? ""} onChange={(e) => setForm((p) => ({ ...p, agama: e.target.value }))} />
+              </Field>
+              <Field label="Anak Ke" icon={UserRound}>
+                <input type="number" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Anak ke" value={form.anak_ke ?? ""} onChange={(e) => setForm((p) => ({ ...p, anak_ke: e.target.value ? Number(e.target.value) : undefined }))} />
+              </Field>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Data Orang Tua" description="Ayah, ibu, kontak, dan alamat orang tua." open={expandedSections.family} onToggle={() => toggleSection("family")}>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <Field label="Nama Ayah" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama ayah" value={form.nama_ayah ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_ayah: e.target.value }))} />
+              </Field>
+              <Field label="Pekerjaan Ayah" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Pekerjaan ayah" value={form.pekerjaan_ayah ?? ""} onChange={(e) => setForm((p) => ({ ...p, pekerjaan_ayah: e.target.value }))} />
+              </Field>
+              <Field label="Nama Ibu" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama ibu" value={form.nama_ibu ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_ibu: e.target.value }))} />
+              </Field>
+              <Field label="Pekerjaan Ibu" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Pekerjaan ibu" value={form.pekerjaan_ibu ?? ""} onChange={(e) => setForm((p) => ({ ...p, pekerjaan_ibu: e.target.value }))} />
+              </Field>
+              <Field label="No HP Orang Tua" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="No HP orang tua" value={form.no_hp_orangtua ?? ""} onChange={(e) => setForm((p) => ({ ...p, no_hp_orangtua: e.target.value }))} />
+              </Field>
+              <div className="hidden lg:block" />
+              <Field label="Alamat Orang Tua - Jalan" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Jalan" value={form.alamat_orangtua_jalan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_jalan: e.target.value }))} />
+              </Field>
+              <Field label="Alamat Orang Tua - Kecamatan" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kecamatan" value={form.alamat_orangtua_kecamatan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_kecamatan: e.target.value }))} />
+              </Field>
+              <Field label="Alamat Orang Tua - Kabupaten" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kabupaten" value={form.alamat_orangtua_kabupaten ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_kabupaten: e.target.value }))} />
+              </Field>
+              <Field label="Alamat Orang Tua - Provinsi" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Provinsi" value={form.alamat_orangtua_provinsi ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_orangtua_provinsi: e.target.value }))} />
+              </Field>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Data Wali" description="Diisi bila siswa memiliki wali selain orang tua." open={expandedSections.guardian} onToggle={() => toggleSection("guardian")}>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <Field label="Nama Wali" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nama wali" value={form.nama_wali ?? ""} onChange={(e) => setForm((p) => ({ ...p, nama_wali: e.target.value }))} />
+              </Field>
+              <Field label="Pekerjaan Wali" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Pekerjaan wali" value={form.pekerjaan_wali ?? ""} onChange={(e) => setForm((p) => ({ ...p, pekerjaan_wali: e.target.value }))} />
+              </Field>
+              <Field label="No HP Wali" icon={UserRound}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="No HP wali" value={form.no_hp_wali ?? ""} onChange={(e) => setForm((p) => ({ ...p, no_hp_wali: e.target.value }))} />
+              </Field>
+              <div className="hidden lg:block" />
+              <Field label="Alamat Wali - Jalan" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Jalan" value={form.alamat_wali_jalan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_jalan: e.target.value }))} />
+              </Field>
+              <Field label="Alamat Wali - Kecamatan" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kecamatan" value={form.alamat_wali_kecamatan ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_kecamatan: e.target.value }))} />
+              </Field>
+              <Field label="Alamat Wali - Kabupaten" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Kabupaten" value={form.alamat_wali_kabupaten ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_kabupaten: e.target.value }))} />
+              </Field>
+              <Field label="Alamat Wali - Provinsi" icon={School}>
+                <input className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Provinsi" value={form.alamat_wali_provinsi ?? ""} onChange={(e) => setForm((p) => ({ ...p, alamat_wali_provinsi: e.target.value }))} />
+              </Field>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Data Akademik" description="Kelas, status siswa, dan administrasi sekolah." open={expandedSections.academic} onToggle={() => toggleSection("academic")}>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <Field label="Tanggal Diterima" icon={School}>
+                <input type="date" className="rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.tanggal_diterima ?? ""} onChange={(e) => setForm((p) => ({ ...p, tanggal_diterima: e.target.value }))} />
+              </Field>
+              <Field label="Status" icon={UserRound}>
+                <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.status ?? "active"} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+                  <option value="active">Aktif</option>
+                  <option value="graduated">Lulus</option>
+                  <option value="transferred">Pindah</option>
+                </select>
+              </Field>
+              <Field label="Kelas" required icon={School}>
+                <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" value={form.class_id ?? ""} onChange={(e) => setForm((p) => ({ ...p, class_id: e.target.value || undefined }))} required>
+                  <option value="">Pilih kelas</option>
+                  {visibleClasses.map((k) => (
+                    <option key={getEntityId(k)} value={getEntityId(k)}>{k.name} ({k.level})</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Catatan Tambahan" description="Catatan guru atau informasi khusus lain." open={expandedSections.notes} onToggle={() => toggleSection("notes")}>
             <Field label="Catatan Guru" icon={UserRound}>
               <textarea className="min-h-24 rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Catatan guru" value={form.catatan_guru ?? ""} onChange={(e) => setForm((p) => ({ ...p, catatan_guru: e.target.value }))} />
             </Field>
-          </div>
+          </SectionCard>
 
-          <div className="lg:col-span-2 flex justify-end gap-2 pt-1">
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
             <button type="button" onClick={() => setOpenModal(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Batal</button>
             <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700" type="submit">
               {editing ? "Simpan Perubahan" : "Buat Siswa"}
@@ -492,6 +546,43 @@ function Field({ label, required, icon: Icon, children }: { label: string; requi
       </span>
       {children}
     </label>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  open,
+  onToggle,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  description: string;
+  open: boolean;
+  onToggle: () => void;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-slate-50"
+        aria-expanded={open}
+      >
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+            {defaultOpen && <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">Prioritas</span>}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{description}</p>
+        </div>
+        <ChevronDown className={`size-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="border-t border-slate-100 px-4 py-4">{children}</div>}
+    </section>
   );
 }
 
